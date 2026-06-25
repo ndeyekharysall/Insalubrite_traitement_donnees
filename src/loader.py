@@ -35,7 +35,18 @@ def _flag_outlier(df, col, lo, hi, label, qc_log):
     """
     Met à NaN les valeurs hors bornes [lo, hi] et journalise.
     Retourne le df modifié.
+    Si la colonne est absente, signale l'anomalie et ignore le contrôle.
     """
+    if col not in df.columns:
+        logger.warning(f"Colonne attendue absente : '{col}' ({label}) — contrôle outlier ignoré.")
+        qc_log.append({
+            "check": f"colonne_absente_{col}",
+            "description": f"{label} : colonne '{col}' introuvable dans les données",
+            "n_affected": 0,
+            "action": "Contrôle outlier ignoré",
+        })
+        return df
+
     mask = df[col].notna() & ((df[col] < lo) | (df[col] > hi))
     n = mask.sum()
     if n > 0:
@@ -175,16 +186,17 @@ def quality_checks(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
 
     # --- Cohérence : si II_13 = 2 (pas de benne), II_14/16/17/18/19/20 doivent être NaN ---
     cols_benne_detail = ["II_14", "II_16", "II_17", "II_18", "II_19", "II_20"]
-    mask_no_benne = df["II_13"] == 2
-    for col in cols_benne_detail:
-        if col in df.columns:
-            incoherent = mask_no_benne & df[col].notna()
-            _flag_incoherence(
-                df, incoherent,
-                f"Ménage sans benne (II_13=2) mais {col} renseigné",
-                "Conservé — skip pattern non appliqué par l'enquêteur",
-                qc_log,
-            )
+    if "II_13" in df.columns:
+        mask_no_benne = df["II_13"] == 2
+        for col in cols_benne_detail:
+            if col in df.columns:
+                incoherent = mask_no_benne & df[col].notna()
+                _flag_incoherence(
+                    df, incoherent,
+                    f"Ménage sans benne (II_13=2) mais {col} renseigné",
+                    "Conservé — skip pattern non appliqué par l'enquêteur",
+                    qc_log,
+                )
 
     # --- Cohérence : II_24 payant, mais II_25_1 manquant ---
     if "II_24" in df.columns and "II_25_1" in df.columns:
