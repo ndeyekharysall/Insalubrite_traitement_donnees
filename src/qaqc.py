@@ -226,8 +226,8 @@ def _sheet_estimations(wb, df):
     sections.append(("B. CARACTÉRISTIQUES DU CHEF DE MÉNAGE", BLUE_MED, [
         ("Sexe du CM",                  df["cm_sexe"]),
         ("Tranche d'âge du CM",         df["cm_tranche_age"]),
-        ("Type d'enseignement",         df["cm_branche_etudes"]),
-        ("Niveau d'instruction",        df["cm_niveau_etudes"]),
+        ("Type d'enseignement",         df["cm_type_enseignement"]),
+        ("Niveau d'instruction",        df["cm_niveau_instruction"]),
         ("CM alphabétisé",              df["cm_est_alphabetise"]),
         ("Répondant = CM",              df["repondant_est_cm"]),
     ]))
@@ -243,8 +243,8 @@ def _sheet_estimations(wb, df):
         ("Tranche montant évacuation",       df["montant_evacuation_tranche"]),
         ("Accès dépotoire normalisé",        df["acces_depotoire_normalise"]),
         ("Satisfaction collecte benne",      df["satisfaction_benne"]),
-        ("Satisfaction bacs quartier",       df["satisfaction_bacs_quartier"]),
-        ("Dépôts sauvages observés",         df["depot_sauvage_observe"]),
+        ("Satisfaction bacs quartier",       df["satisfaction_bacs"]),
+        ("Dépôts sauvages observés",         df["depots_sauvages_observes"]),
         ("Connaissance UCG",                 df["connait_UCG"]),
         ("Au moins 1 traitement pratiqué",   df["au_moins_un_traitement"]),
     ]))
@@ -252,7 +252,7 @@ def _sheet_estimations(wb, df):
     # --- D. Conséquences ---
     sections.append(("D. CONSÉQUENCES SANITAIRES", ORANGE, [
         ("Aucune maladie déclarée",              df["aucune_maladie"].map({1: "Oui", 0: "Non"})),
-        ("Maladie potentiellement liée déchets", df["maladie_potentiellement_liee_dechets"]),
+        ("Maladie potentiellement liée déchets", df["maladie_liee_dechets"]),
         ("Nuisibles présents (liste)",           df["nuisibles_liste"].notna().map({True: "Nuisibles signalés", False: "Aucun"})),
     ]))
 

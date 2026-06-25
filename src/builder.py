@@ -1,15 +1,6 @@
 # =============================================================================
-# builder.py — Construction des variables analytiques thématiques
-# =============================================================================
-# Ce module transforme les variables brutes (codes numériques, multi-select, etc.)
-# en variables propres, labellisées et dérivées, organisées en 4 blocs :
-#   A. Caractéristiques du ménage
-#   B. Caractéristiques du Chef de Ménage
-#   C. Déchets ménagers
-#   D. Conséquences et perception
-#
-# Principe de scalabilité : toutes les étiquettes sont dans config.py.
-# Pour une nouvelle édition : mettre à jour config.py, ce module reste stable.
+# builder.py — Construction des variables analytiques
+# Validé sur questionnaire ENSAE/UCG 2018 et structure réelle de la base
 # =============================================================================
 
 import logging
@@ -18,182 +9,156 @@ import pandas as pd
 
 from config import (
     SEXE, STATUT_REPONDANT, STATUT_OCCUPATION, TYPE_LOGEMENT,
-    TYPE_ENSEIGNEMENT_CM, NIVEAU_INSTRUCTION_CM, ALPHA_CM,
+    TYPE_ENSEIGNEMENT_CM, NIVEAU_INSTRUCTION_CM, ALPHA,
     MODE_STOCKAGE, PLACE_STOCKAGE, PROPORTION_TRAITEE, TRAITEMENT_PRATIQUE,
-    ACCES_BENNE, SERVICE_COLLECTE_ALTERNATIF, RAISON_SERVICE_ALTERNATIF,
-    SATISFACTION_COLLECTE, MONTANT_EVACUATION, FREQUENCE_PAIEMENT,
+    ACCES_BENNE, RESPONSABLE_EVACUATION, DISTANCE_COLLECTE,
+    FREQUENCE_BENNE, SATISFACTION_BENNE,
+    SERVICE_ALTERNATIF, RAISON_SERVICE_ALTERNATIF,
+    MONTANT_EVACUATION, FREQUENCE_PAIEMENT,
     MONTANT_MEDIAN_FCFA, FREQ_TO_MONTHLY,
-    SATISFACTION_4PT, FREQUENCE_COMPORTEMENT, GESTIONNAIRE_PLACE,
-    VARS_ABSENTES,
+    SATISFACTION_4PT, FREQUENCE_COMPORTEMENT,
+    RAISON_INSATISFACTION_BACS, DEPOTS_SAUVAGES, DERNIER_DEPOT,
+    GESTIONNAIRE_PLACE, GESTIONNAIRE_MARCHE, ORGANISATEUR_CAMPAGNE,
+    DEPARTEMENT,
 )
 
 logger = logging.getLogger(__name__)
 
-# Mémorise les colonnes brutes absentes déjà signalées (évite les logs répétés)
-_MISSING_COLS = set()
-
 
 # ---------------------------------------------------------------------------
-# Helpers génériques
+# Helpers
 # ---------------------------------------------------------------------------
 
-def _col(df, name):
-    """
-    Accès défensif à une colonne brute.
-    Retourne df[name] si elle existe, sinon une série de NaN (même index),
-    en journalisant l'absence une seule fois. Toutes les variables dérivées
-    de cette colonne seront donc à NaN au lieu de provoquer un KeyError.
-    """
-    if name in df.columns:
-        return df[name]
-    if name not in _MISSING_COLS:
-        _MISSING_COLS.add(name)
-        logger.warning(f"Colonne brute absente : '{name}' — variable(s) dérivée(s) mise(s) à NaN.")
+def _col(df, col, default=None):
+    """Retourne df[col] si la colonne existe, sinon une série de NaN avec un warning."""
+    if col in df.columns:
+        return df[col]
+    logger.warning(f"Colonne brute absente : '{col}' — variable(s) dérivée(s) mise(s) à NaN.")
+    if default is not None:
+        return pd.Series(default, index=df.index)
     return pd.Series(np.nan, index=df.index)
 
 
-def _map(series, mapping, default=np.nan):
-    """Applique un dictionnaire de mapping à une série, NaN si absent."""
-    return series.map(mapping).where(series.notna(), default)
+def _map(series, mapping):
+    return series.map(mapping)
 
 
 def _oui_non(series):
-    """Convertit 1→Oui, 2→Non, autre→NaN."""
     return series.map({1: "Oui", 2: "Non"})
 
 
-def _satisfaction4(series):
-    return _map(series, SATISFACTION_4PT)
-
-
 def _binary_flag(series):
-    """0/1 binaire : retourne la série telle quelle après cast int."""
     return series.fillna(0).astype(int)
 
 
-def _concat_binary_flags(df, cols, sep=" | "):
-    """
-    Construit une chaîne textuelle des libellés des colonnes binaires = 1.
-    Ex : pour les maladies, sources de déchets, etc.
-    cols : list of (col_name, label)
-    """
+def _concat_flags(df, cols_labels, sep=" | "):
+    """Construit une liste textuelle des modalités sélectionnées (binaires = 1)."""
+    available = [(c, l) for c, l in cols_labels if c in df.columns]
+    if not available:
+        return pd.Series(np.nan, index=df.index)
     def row_labels(row):
-        labels = [lbl for col, lbl in cols if row.get(col, 0) == 1]
-        return sep.join(labels) if labels else np.nan
-    return df.apply(row_labels, axis=1)
+        lbls = [l for c, l in available if row.get(c, 0) == 1]
+        return sep.join(lbls) if lbls else np.nan
+    return df[list(dict.fromkeys([c for c, _ in available]))].assign(
+        **{c: df[c] for c, _ in available}
+    ).apply(row_labels, axis=1)
+
+
+def _sum_flags(df, cols):
+    return sum(_col(df, c).fillna(0) for c in cols).astype(int)
 
 
 # ---------------------------------------------------------------------------
-# BLOC A — Caractéristiques du Ménage
+# BLOC A — Ménage
 # ---------------------------------------------------------------------------
 
-def build_menage(df: pd.DataFrame) -> pd.DataFrame:
-    """Construit les variables de caractéristiques du ménage."""
+def build_menage(df):
     out = pd.DataFrame(index=df.index)
 
-    # Identifiants géographiques disponibles
-    out["commune_code"]    = _col(df, "Commune").astype(str).str.strip()
-    out["quartier"]        = _col(df, "quartier").astype(str).str.strip().replace({"nan": np.nan})
+    # Identifiants géographiques
+    out["commune_code"] = _col(df, "Commune").astype(str).str.strip().replace({"nan": np.nan})
+    out["quartier"]     = _col(df, "quartier").astype(str).str.strip().replace({"nan": np.nan})
 
-    # Variables absentes — noter NaN avec documentation
-    for var in ["region", "departement", "milieu_residence"]:
-        out[var] = np.nan  # voir VARS_ABSENTES dans config.py
+    # Note : toute la zone est urbaine (Dakar), région non collectée comme variable
+    out["zone"] = "Région de Dakar (urbain)"
 
     # Taille du ménage
-    composantes = ["I_5_1", "I_5_2", "I_5_3", "I_5_4"]
-    if all(c in df.columns for c in composantes):
-        out["nb_enfants_0_4"]   = _col(df, "I_5_1").fillna(0).astype(int)
-        out["nb_enfants_5_15"]  = _col(df, "I_5_2").fillna(0).astype(int)
-        out["nb_adultes_H"]     = _col(df, "I_5_3").fillna(0).astype(int)
-        out["nb_adultes_F"]     = _col(df, "I_5_4").fillna(0).astype(int)
+    out["nb_enfants_0_4"]  = _col(df, "I_5_1").fillna(0).astype(int)
+    out["nb_enfants_5_15"] = _col(df, "I_5_2").fillna(0).astype(int)
+    out["nb_adultes_H"]    = _col(df, "I_5_3").fillna(0).astype(int)
+    out["nb_adultes_F"]    = _col(df, "I_5_4").fillna(0).astype(int)
 
-    if "I_5" in df.columns:
-        out["taille_menage"] = _col(df, "I_5")
+    i5 = _col(df, "I_5")
+    if i5.notna().sum() > 0:
+        out["taille_menage"] = pd.to_numeric(i5, errors="coerce")
     else:
-        # Recalcul si I_5 manquant (colonnes absentes → traitées comme 0)
-        out["taille_menage"] = (
-            _col(df, "I_5_1").fillna(0) +
-            _col(df, "I_5_2").fillna(0) +
-            _col(df, "I_5_3").fillna(0) +
-            _col(df, "I_5_4").fillna(0)
-        )
+        out["taille_menage"] = (out["nb_enfants_0_4"] + out["nb_enfants_5_15"] +
+                                out["nb_adultes_H"]   + out["nb_adultes_F"])
 
-    # Statut d'occupation du logement
-    out["statut_occupation"]  = _map(_col(df, "I_6"), STATUT_OCCUPATION)
+    # Statut occupation et type logement
+    out["statut_occupation"] = _map(_col(df, "I_6"), STATUT_OCCUPATION)
+    out["type_habitat"]      = _map(_col(df, "I_7").astype(str), TYPE_LOGEMENT)
 
-    # Type de logement (habitat)
-    out["type_habitat"]       = _map(_col(df, "I_7").astype(str), TYPE_LOGEMENT)
-
-    # PROXY niveau de vie (dépenses + actifs non collectés directement)
-    # Construit à partir de : type_habitat, statut_occupation, montant payé déchets
-    # Score de 0 à 3 : 1 pt chacun si propriétaire, si logement structuré (villa/appart), si service payant
-    proxy = pd.Series(0, index=df.index)
-    proxy += (_col(df, "I_6") == 2).astype(int)                        # propriétaire
-    proxy += _col(df, "I_7").astype(str).isin(["1", "2"]).astype(int)  # villa ou appart
-    proxy += (_col(df, "II_24") == 1).astype(int)                      # paie pour déchets
-    out["proxy_niveau_vie"] = proxy
-    out["proxy_niveau_vie_label"] = proxy.map({
-        0: "Faible", 1: "Moyen-bas", 2: "Moyen-haut", 3: "Élevé"
-    })
+    # PROXY niveau de vie (0-3)
+    # +1 si propriétaire, +1 si logement structuré (maison basse/étage/appart), +1 si paie déchets
+    i6 = _col(df, "I_6")
+    i7 = _col(df, "I_7").astype(str)
+    ii24 = _col(df, "II_24")
+    proxy = ((i6 == 2).astype(int) +
+             i7.isin(["2", "3", "4"]).astype(int) +
+             (ii24 == 1).astype(int))
+    out["proxy_niveau_vie"]       = proxy
+    out["proxy_niveau_vie_label"] = proxy.map({0: "Faible", 1: "Moyen-bas", 2: "Moyen-haut", 3: "Élevé"})
 
     logger.info(f"Bloc A (ménage) : {out.shape[1]} variables construites.")
     return out
 
 
 # ---------------------------------------------------------------------------
-# BLOC B — Caractéristiques du Chef de Ménage
+# BLOC B — Chef de Ménage
 # ---------------------------------------------------------------------------
 
-def build_cm(df: pd.DataFrame) -> pd.DataFrame:
-    """Construit les variables du Chef de Ménage."""
+def build_cm(df):
     out = pd.DataFrame(index=df.index)
 
-    out["cm_sexe"]              = _map(_col(df, "I_8"), SEXE)
-    out["cm_age"]               = _col(df, "I_9")
+    # Répondant
+    out["repondant_sexe"]    = _map(_col(df, "I_2"), SEXE)
+    out["repondant_age"]     = pd.to_numeric(_col(df, "I_3"), errors="coerce").replace({98: np.nan, 99: np.nan})
+    out["repondant_statut"]  = _map(_col(df, "I_4").astype(str), STATUT_REPONDANT)
+    out["repondant_est_cm"]  = (_col(df, "I_4").astype(str) == "1").map({True: "Oui", False: "Non"})
 
-    # Groupe d'âge CM
+    # Chef de ménage
+    out["cm_sexe"] = _map(_col(df, "I_8"), SEXE)
+    cm_age = pd.to_numeric(_col(df, "I_9"), errors="coerce").replace({98: np.nan, 99: np.nan})
+    out["cm_age"] = cm_age
+
+    # Tranche d'âge CM
     bins   = [0, 25, 35, 45, 60, 200]
     labels = ["Moins de 25 ans", "25-34 ans", "35-44 ans", "45-59 ans", "60 ans et plus"]
-    out["cm_tranche_age"] = pd.cut(
-        _col(df, "I_9"), bins=bins, labels=labels, right=False
-    ).astype(object).where(_col(df, "I_9").notna(), np.nan)
+    out["cm_tranche_age"] = pd.cut(cm_age, bins=bins, labels=labels, right=False).astype(object).where(cm_age.notna(), np.nan)
 
-    # Statut du répondant par rapport au CM
-    out["repondant_statut"]     = _map(_col(df, "I_4").astype(str), STATUT_REPONDANT)
-    out["repondant_est_cm"]     = (_col(df, "I_4").astype(str) == "1").map({True: "Oui", False: "Non"})
+    # Instruction CM
+    out["cm_type_enseignement"] = _map(_col(df, "I_10").astype(str), TYPE_ENSEIGNEMENT_CM)
+    out["cm_niveau_instruction"] = _map(_col(df, "I_11"), NIVEAU_INSTRUCTION_CM)
 
-    # Niveau d'études
-    out["cm_branche_etudes"]    = _map(_col(df, "I_10").astype(str), TYPE_ENSEIGNEMENT_CM)
-    out["cm_niveau_etudes"]     = _map(_col(df, "I_11"), NIVEAU_INSTRUCTION_CM)
+    # Alphabétisation CM
+    # Note : I_12_1 = Aucune langue (1=Oui sauf alpha), I_12_2 = Français, etc.
+    out["cm_alpha_aucune_langue"] = _map(_col(df, "I_12_1"), ALPHA)
+    out["cm_alpha_francais"]      = _map(_col(df, "I_12_2"), ALPHA)
+    out["cm_alpha_anglais"]       = _map(_col(df, "I_12_3"), ALPHA)
+    out["cm_alpha_arabe"]         = _map(_col(df, "I_12_4"), ALPHA)
+    out["cm_alpha_lng_nationale"] = _map(_col(df, "I_12_5"), ALPHA)  # _5 = langue étrangère dans la base
 
-    # Alphabétisation (multilingue) — consolider en variable synthétique
-    alpha_cols = {
-        "I_12_1": "Français",
-        "I_12_2": "Anglais",
-        "I_12_3": "Arabe",
-        "I_12_4": "Langue nationale",
-        "I_12_5": "Autre langue étrangère",
-    }
-    out["cm_alpha_francais"]    = _map(_col(df, "I_12_1"), ALPHA_CM)
-    out["cm_alpha_anglais"]     = _map(_col(df, "I_12_2"), ALPHA_CM)
-    out["cm_alpha_arabe"]       = _map(_col(df, "I_12_3"), ALPHA_CM)
-    out["cm_alpha_lng_nat"]     = _map(_col(df, "I_12_4"), ALPHA_CM)
-
-    # Alphabétisé dans au moins une langue ?
-    alpha_bin = pd.DataFrame({
-        lang: (df[col] == 1).astype(float) for col, lang in alpha_cols.items()
-        if col in df.columns
-    })
+    # CM alphabétisé dans au moins une langue (autre que "aucune")
+    alpha_cols = ["I_12_2", "I_12_3", "I_12_4", "I_12_5"]
+    alpha_bin = pd.DataFrame({c: (_col(df, c) == 1).astype(float) for c in alpha_cols})
     out["cm_est_alphabetise"] = alpha_bin.max(axis=1).map({1.0: "Oui", 0.0: "Non"})
 
-    # Situation matrimoniale — non collectée directement
-    out["cm_situation_matrimoniale"] = np.nan  # absent du questionnaire
-
-    # Statut d'emploi du répondant (I_6 = statut occupation logement, pas emploi)
-    # Le questionnaire ne collecte pas directement le statut emploi ni secteur du CM
-    out["cm_statut_emploi"]  = np.nan  # absent — voir VARS_ABSENTES
-    out["cm_secteur_emploi"] = np.nan  # absent
-    out["cm_revenu"]         = np.nan  # absent — proxy dans bloc ménage
+    # Variables non collectées
+    out["cm_situation_matrimoniale"] = np.nan
+    out["cm_statut_emploi"]          = np.nan
+    out["cm_secteur_emploi"]         = np.nan
+    out["cm_revenu"]                 = np.nan
 
     logger.info(f"Bloc B (CM) : {out.shape[1]} variables construites.")
     return out
@@ -203,30 +168,25 @@ def build_cm(df: pd.DataFrame) -> pd.DataFrame:
 # BLOC C — Déchets Ménagers
 # ---------------------------------------------------------------------------
 
-def build_dechets(df: pd.DataFrame) -> pd.DataFrame:
-    """Construit les variables sur la gestion des déchets."""
+def build_dechets(df):
     out = pd.DataFrame(index=df.index)
 
-    # --- Sources de déchets (multi-select _v1 à _v7) ---
+    # --- II.1 Sources de déchets ---
     sources = [
-        ("_v1", "Consommation alimentaire / cuisine"),
-        ("_v2", "Gestion foyer hors alimentation"),
+        ("_v1", "Consommation alimentaire / Cuisine"),
+        ("_v2", "Gestion du foyer (hors alimentation)"),
         ("_v3", "Élevage"),
         ("_v4", "Animaux domestiques"),
         ("_v5", "Entretien du logement"),
-        ("_v6", "Commerce / activités productives"),
+        ("_v6", "Commerce / activités de production"),
         ("_v7", "Autre source"),
     ]
     for col, lbl in sources:
-        if col in df.columns:
-            out[f"src_{col}"] = _binary_flag(df[col])
-    out["sources_dechets_liste"] = _concat_binary_flags(df, sources)
-    out["nb_sources_dechets"] = sum(
-        (df[col].fillna(0) for col, _ in sources if col in df.columns),
-        pd.Series(0, index=df.index)
-    ).astype(int)
+        out[f"src_{col}"] = _binary_flag(_col(df, col, 0))
+    out["sources_liste"]  = _concat_flags(df, sources)
+    out["nb_sources"]     = _sum_flags(df, [c for c, _ in sources])
 
-    # --- Nature des déchets (multi-select _v8 à _v17) ---
+    # --- II.2 Nature des déchets ---
     natures = [
         ("_v8",  "Plastiques"),
         ("_v9",  "Papier / Carton"),
@@ -240,247 +200,189 @@ def build_dechets(df: pd.DataFrame) -> pd.DataFrame:
         ("_v17", "Autre nature"),
     ]
     for col, lbl in natures:
-        if col in df.columns:
-            out[f"nat_{col}"] = _binary_flag(df[col])
-    out["natures_dechets_liste"] = _concat_binary_flags(df, natures)
-    out["nb_natures_dechets"] = sum(
-        (df[col].fillna(0) for col, _ in natures if col in df.columns),
-        pd.Series(0, index=df.index)
-    ).astype(int)
+        out[f"nat_{col}"] = _binary_flag(_col(df, col, 0))
+    out["natures_liste"] = _concat_flags(df, natures)
+    out["nb_natures"]    = _sum_flags(df, [c for c, _ in natures])
 
-    # --- Mode de stockage ---
-    out["mode_stockage"]           = _map(_col(df, "II_3").astype(str), MODE_STOCKAGE)
-    out["stockage_couvert"]        = _oui_non(_col(df, "II_4"))
-    out["place_stockage"]          = _map(_col(df, "II_5").astype(str), PLACE_STOCKAGE)
+    # --- II.3-II.6 Stockage ---
+    out["mode_stockage"]              = _map(_col(df, "II_3").astype(str), MODE_STOCKAGE)
+    out["stockage_couvert"]           = _oui_non(_col(df, "II_4"))
+    out["place_stockage"]             = _map(_col(df, "II_5").astype(str), PLACE_STOCKAGE)
     out["capacite_stockage_suffisante"] = _oui_non(_col(df, "II_6"))
 
-    # --- Pratiques de tri et revente ---
-    out["tri_avant_evacuation"]    = _oui_non(_col(df, "II_7"))
-    out["revente_dechets"]         = _oui_non(_col(df, "II_8"))
-
-    # Types revendus (multi-select)
+    # --- II.7-II.10 Tri et revente ---
+    out["tri_avant_evacuation"] = _oui_non(_col(df, "II_7"))
+    out["revente_dechets"]      = _oui_non(_col(df, "II_8"))
     revendus = [
         ("_v18", "Journaux"), ("_v19", "Verre"), ("_v20", "Ferraille"),
         ("_v21", "Plastique"), ("_v22", "Autre déchet revendu"),
     ]
-    out["types_revendus_liste"] = _concat_binary_flags(df, revendus)
-    out["raison_non_revente"]   = _map(_col(df, "II_10"), {
-        1: "Pas connaissance",
+    out["types_revendus_liste"] = _concat_flags(df, revendus)
+    out["raison_non_revente"]   = _col(df, "II_10").map({
+        1: "N'en a pas connaissance",
         2: "Revenus faibles",
-        3: "Ne connaît pas les modes",
-        4: "Manque de temps",
-        5: "Pas intéressé",
+        3: "Ne connaît pas les modes de revente",
+        4: "N'a pas le temps nécessaire",
+        5: "N'est pas intéressé",
     })
 
-    # --- Traitement auto-effectué ---
-    out["proportion_traitee_soi"]  = _map(_col(df, "II_11"), PROPORTION_TRAITEE)
+    # --- II.11-II.12 Traitement ---
+    out["proportion_traitee"]    = _map(_col(df, "II_11"), PROPORTION_TRAITEE)
     out["traitement_enfouissement"] = _map(_col(df, "II_12_1"), TRAITEMENT_PRATIQUE)
     out["traitement_incineration"]  = _map(_col(df, "II_12_2"), TRAITEMENT_PRATIQUE)
     out["traitement_recyclage"]     = _map(_col(df, "II_12_3"), TRAITEMENT_PRATIQUE)
     out["traitement_compostage"]    = _map(_col(df, "II_12_4"), TRAITEMENT_PRATIQUE)
-
-    # Indicateur synthétique : au moins un traitement pratiqué
-    traitements_bin = pd.DataFrame({
-        "enf": (_col(df, "II_12_1").isin([1, 2])).astype(float),
-        "inc": (_col(df, "II_12_2").isin([1, 2])).astype(float),
-        "rec": (_col(df, "II_12_3").isin([1, 2])).astype(float),
-        "com": (_col(df, "II_12_4").isin([1, 2])).astype(float),
+    trait_bin = pd.DataFrame({
+        "e": _col(df, "II_12_1").isin([1, 2]).astype(float),
+        "i": _col(df, "II_12_2").isin([1, 2]).astype(float),
+        "r": _col(df, "II_12_3").isin([1, 2]).astype(float),
+        "c": _col(df, "II_12_4").isin([1, 2]).astype(float),
     })
-    out["au_moins_un_traitement"]  = traitements_bin.max(axis=1).map({1.0: "Oui", 0.0: "Non"})
+    out["au_moins_un_traitement"] = trait_bin.max(axis=1).map({1.0: "Oui", 0.0: "Non"})
 
-    # --- Accès aux services d'évacuation publics (bennes tasseuses) ---
-    out["acces_benne_tasseuse"]    = _map(_col(df, "II_13"), ACCES_BENNE)
-    out["benne_service_principal"] = _oui_non(_col(df, "II_14"))
-    out["benne_point_distance"]    = _map(_col(df, "II_16"), {
-        1: "Proche", 2: "Acceptable", 3: "Éloignée"
-    })
-    out["benne_point_nettoyage"]   = _oui_non(_col(df, "II_17"))
-    out["benne_heure_convient"]    = _oui_non(_col(df, "II_18"))
-    out["benne_frequence"]         = _col(df, "II_19").map({1: "Régulière", 2: "Irrégulière"})
-    out["satisfaction_benne"]      = _map(_col(df, "II_20"), SATISFACTION_COLLECTE)
+    # --- II.12 Responsable évacuation ---
+    out["responsable_evacuation"] = _map(_col(df, "II_15"), RESPONSABLE_EVACUATION)
 
-    # --- Accès aux modes d'évacuation privés / alternatifs ---
-    out["service_alternatif_type"] = _map(_col(df, "II_22").astype(str), SERVICE_COLLECTE_ALTERNATIF)
+    # --- II.13-II.20 Bennes tasseuses (service public) ---
+    out["acces_benne_tasseuse"]   = _map(_col(df, "II_13"), ACCES_BENNE)
+    out["benne_usage_regulier"]   = _oui_non(_col(df, "II_14"))
+    out["distance_point_collecte"] = _map(_col(df, "II_16"), DISTANCE_COLLECTE)
+    out["benne_point_nettoyage"]  = _oui_non(_col(df, "II_17"))
+    out["benne_heure_convient"]   = _oui_non(_col(df, "II_17"))  # II_17 dans questionnaire
+    out["frequence_benne"]        = _map(_col(df, "II_19"), FREQUENCE_BENNE)
+    out["satisfaction_benne"]     = _map(_col(df, "II_20"), SATISFACTION_BENNE)
+
+    # --- II.21-II.23 Service alternatif (si pas de benne) ---
+    out["service_alternatif_type"]   = _map(_col(df, "II_22").astype(str), SERVICE_ALTERNATIF)
     out["service_alternatif_raison"] = _map(_col(df, "II_23").astype(str), RAISON_SERVICE_ALTERNATIF)
+    out["a_service_alternatif"]      = _col(df, "II_22").astype(str).isin(
+        ["1", "2", "3", "other"]
+    ).map({True: "Oui", False: "Non"})
 
-    # Indicateur : a accès à un service alternatif
-    out["a_service_alternatif"]    = _col(df, "II_22").astype(str).isin(["1", "2", "3", "other"]).map(
-        {True: "Oui", False: "Non"}
-    )
-
-    # --- Montant mensuel déboursé (ou à débourser) pour l'évacuation ---
-    out["service_evacuation_payant"] = _oui_non(_col(df, "II_24"))
-    out["montant_evacuation_tranche"] = _map(_col(df, "II_25_1"), MONTANT_EVACUATION)
-    out["frequence_paiement"]         = _map(_col(df, "II_25_2"), FREQUENCE_PAIEMENT)
-
-    # Proxy montant mensuel en FCFA
-    med = _col(df, "II_25_1").map(MONTANT_MEDIAN_FCFA)
+    # --- II.23-II.25 Paiement ---
+    out["service_evacuation_payant"]       = _oui_non(_col(df, "II_24"))
+    out["montant_evacuation_tranche"]      = _map(_col(df, "II_25_1"), MONTANT_EVACUATION)
+    out["frequence_paiement"]              = _map(_col(df, "II_25_2"), FREQUENCE_PAIEMENT)
+    med  = _col(df, "II_25_1").map(MONTANT_MEDIAN_FCFA)
     freq = _col(df, "II_25_2").map(FREQ_TO_MONTHLY)
-    out["montant_mensuel_evacuation_fcfa"] = (med * freq).where(
-        _col(df, "II_24") == 1, other=0  # gratuit = 0 si non payant
-    ).round(0)
-
-    # Responsable de l'évacuation dans le ménage
-    out["responsable_evacuation"] = _map(_col(df, "II_15"), {
-        1: "Chef de ménage",
-        2: "Conjoint du CM",
-        3: "Femme de ménage",
-        4: "Autre membre féminin adulte",
-        5: "Autre membre féminin enfant",
-        6: "Autre membre masculin adulte",
-        7: "Autre membre masculin enfant",
-    })
-
-    # --- Infrastructure quartier : dépotoires normalisés ---
-    out["existence_bacs_quartier"]    = _col(df, "III_2").map({1: "Oui", 2: "Non", 3: "Ne sait pas"})
-    out["satisfaction_bacs_quartier"] = _satisfaction4(_col(df, "III_3"))
-    out["corbeilles_rue_presentes"]   = _oui_non(_col(df, "III_5"))
-    out["satisfaction_corbeilles_disposition"] = _satisfaction4(_col(df, "III_6"))
-    out["satisfaction_corbeilles_qualite"]     = _satisfaction4(_col(df, "III_8"))
-
-    # Indicateur accès dépotoire normalisé (bac public OU corbeille présente)
-    bac_ok = _col(df, "III_2") == 1
-    corbeille_ok = _col(df, "III_5") == 1
-    out["acces_depotoire_normalise"] = (bac_ok | corbeille_ok).map(
-        {True: "Oui", False: "Non"}
+    montant_calc = (med * freq).round(0)
+    out["montant_mensuel_evacuation_fcfa"] = np.where(
+        _col(df, "II_24") == 1, montant_calc, 0
     )
 
-    # --- Comportements et environnement du quartier ---
-    out["depot_sauvage_rue"]     = _map(_col(df, "III_10"), FREQUENCE_COMPORTEMENT)
-    out["eaux_usees_rue"]        = _map(_col(df, "III_11"), FREQUENCE_COMPORTEMENT)
-    out["depot_sauvage_observe"] = _map(_col(df, "III_12"), {
-        1: "Oui, fréquemment", 2: "Oui, rarement", 3: "Non, jamais"
-    })
-    out["dernier_depot_sauvage"] = _map(_col(df, "III_13"), {
-        1: "Moins de 2 jours", 2: "2 à 7 jours", 3: "Plus de 7 jours"
-    })
-    out["contact_autorites_depot"] = _oui_non(_col(df, "III_14"))
-    out["satisfaction_reaction_autorites"] = _satisfaction4(_col(df, "III_15"))
+    # --- III.1 Durée dans le quartier ---
+    out["duree_quartier"] = _col(df, "III_1").map({1: "Moins d'un mois", 2: "1 mois et plus"})
 
-    # Nuisibles attirés (multi-select _v23 à _v29)
+    # --- III.2-III.4 Bacs à ordures publics ---
+    out["existence_bacs_quartier"]     = _col(df, "III_2").map({1: "Oui", 2: "Non", 3: "Ne sait pas"})
+    out["satisfaction_bacs"]           = _map(_col(df, "III_3"), SATISFACTION_4PT)
+    out["raison_insatisfaction_bacs"]  = _map(_col(df, "III_4").astype(str), RAISON_INSATISFACTION_BACS)
+
+    # --- III.5-III.9 Corbeilles de rue ---
+    out["corbeilles_rue_presentes"]          = _oui_non(_col(df, "III_5"))
+    out["satisfaction_emplacements_corbeilles"] = _map(_col(df, "III_6"), SATISFACTION_4PT)
+    out["satisfaction_qualite_corbeilles"]   = _map(_col(df, "III_8"), SATISFACTION_4PT)
+
+    # Indicateur : accès à un dépotoire normalisé
+    bac_ok      = _col(df, "III_2") == 1
+    corbeille_ok = _col(df, "III_5") == 1
+    out["acces_depotoire_normalise"] = (bac_ok | corbeille_ok).map({True: "Oui", False: "Non"})
+
+    # --- III.10-III.16 Dépôts sauvages ---
+    out["dep_sauvages_rue_freq"]       = _map(_col(df, "III_10"), FREQUENCE_COMPORTEMENT)
+    out["eaux_usees_rue_freq"]         = _map(_col(df, "III_11"), FREQUENCE_COMPORTEMENT)
+    out["depots_sauvages_observes"]    = _map(_col(df, "III_12"), DEPOTS_SAUVAGES)
+    out["dernier_depot_sauvage"]       = _map(_col(df, "III_13"), DERNIER_DEPOT)
+    out["contact_UCG_pour_depot"]      = _oui_non(_col(df, "III_14"))
+    out["satisfaction_reaction_UCG"]   = _map(_col(df, "III_15"), SATISFACTION_4PT)
+
+    # --- III.17 Nuisibles ---
     nuisibles = [
         ("_v23", "Moustiques"), ("_v24", "Mouches"), ("_v25", "Cafards"),
         ("_v26", "Souris"), ("_v27", "Vers"), ("_v28", "Rats"), ("_v29", "Autre"),
     ]
     for col, lbl in nuisibles:
-        if col in df.columns:
-            out[f"nuisible_{col}"] = _binary_flag(df[col])
-    out["nuisibles_liste"] = _concat_binary_flags(df, nuisibles)
-    out["nb_nuisibles"] = sum(
-        (df[col].fillna(0) for col, _ in nuisibles if col in df.columns),
-        pd.Series(0, index=df.index)
-    ).astype(int)
+        out[f"nuisible_{col}"] = _binary_flag(_col(df, col, 0))
+    out["nuisibles_liste"] = _concat_flags(df, nuisibles)
+    out["nb_nuisibles"]    = _sum_flags(df, [c for c, _ in nuisibles])
 
-    # --- Services de gestion publique (balayage, set setal) ---
-    out["service_balayage_rues"]       = _col(df, "III_18").map({1: "Oui", 2: "Non", 3: "Ne sait pas"})
-    out["satisfaction_balayage"]       = _satisfaction4(_col(df, "III_19"))
-    out["operations_nettoyage_quartier"] = _oui_non(_col(df, "III_21"))
+    # --- III.18-III.20 Balayage ---
+    out["service_balayage_rues"]    = _col(df, "III_18").map({1: "Oui", 2: "Non", 3: "Ne sait pas"})
+    out["satisfaction_balayage"]    = _map(_col(df, "III_19"), SATISFACTION_4PT)
+    out["set_setal"]                = _oui_non(_col(df, "III_21"))
 
-    # Places publiques et marchés
-    out["place_publique_presence"]     = _oui_non(_col(df, "III_22"))
-    out["place_publique_gestionnaire"] = _map(_col(df, "III_23").astype(str), GESTIONNAIRE_PLACE)
-    out["place_publique_salubrite"]    = _satisfaction4(_col(df, "III_24"))
-    out["marche_present"]              = _oui_non(_col(df, "III_25"))
-    out["marche_gestionnaire"]         = _map(_col(df, "III_26").astype(str), GESTIONNAIRE_PLACE)
-    out["marche_gestion_qualite"]      = _satisfaction4(_col(df, "III_27"))
+    # --- III.22-III.24 Place publique ---
+    out["place_publique"]               = _oui_non(_col(df, "III_22"))
+    out["gestionnaire_place_publique"]  = _map(_col(df, "III_23").astype(str), GESTIONNAIRE_PLACE)
+    out["salubrite_place_publique"]     = _map(_col(df, "III_24"), SATISFACTION_4PT)
 
-    # Connaissance et sensibilisation UCG
-    out["connait_UCG"]                 = _oui_non(_col(df, "III_28"))
-    out["campagne_sensibilisation"]    = _oui_non(_col(df, "III_29"))
-    out["satisfaction_sensibilisation"] = _oui_non(_col(df, "III_31"))
+    # --- III.25-III.27 Marché ---
+    out["marche_present"]           = _oui_non(_col(df, "III_25"))
+    out["gestionnaire_marche"]      = _map(_col(df, "III_26").astype(str), GESTIONNAIRE_MARCHE)
+    out["gestion_dechets_marche"]   = _map(_col(df, "III_27"), SATISFACTION_4PT)
 
-    # Durée dans le quartier (binaire : moins d'un mois ou plus)
-    out["duree_quartier_sup_1mois"] = _col(df, "III_1").map({
-        1: "Moins d'un mois", 2: "1 mois et plus"
-    })
+    # --- III.28-III.33 Sensibilisation ---
+    out["connait_UCG"]                = _oui_non(_col(df, "III_28"))
+    out["campagne_sensibilisation"]   = _oui_non(_col(df, "III_29"))
+    out["organisateur_campagne"]      = _map(_col(df, "III_30").astype(str), ORGANISATEUR_CAMPAGNE)
+    out["satisfait_campagne"]         = _oui_non(_col(df, "III_31"))
+    out["suggestions_amelioration"]   = _col(df, "III_33").astype(str).replace({"nan": np.nan})
 
     logger.info(f"Bloc C (déchets) : {out.shape[1]} variables construites.")
     return out
 
 
 # ---------------------------------------------------------------------------
-# BLOC D — Conséquences et perception
+# BLOC D — Conséquences sanitaires (Section IV)
 # ---------------------------------------------------------------------------
 
-def build_consequences(df: pd.DataFrame) -> pd.DataFrame:
-    """Construit les variables sur les conséquences sanitaires et la perception."""
+def build_consequences(df):
     out = pd.DataFrame(index=df.index)
 
-    # Maladies déclarées (multi-select _v30 à _v38)
+    # IV.1 — Maladies déclarées (multi-select)
     maladies = [
         ("_v30", "Fièvre"),
         ("_v31", "Asthme"),
         ("_v32", "Rhume"),
         ("_v33", "Sinusite"),
         ("_v34", "Toux"),
-        ("_v35", "Nausées / Vomissements"),
+        ("_v35", "Nausées ou vomissements"),
         ("_v36", "Démangeaisons"),
         ("_v37", "Aucune maladie"),
         ("_v38", "Autre maladie"),
     ]
     for col, lbl in maladies:
-        if col in df.columns:
-            out[f"maladie_{col}"] = _binary_flag(df[col])
-    out["maladies_declarees_liste"]   = _concat_binary_flags(df, maladies)
-    out["nb_maladies_declarees"]      = sum(
-        (df[col].fillna(0) for col, lbl in maladies
-         if col in df.columns and lbl != "Aucune maladie"),
-        pd.Series(0, index=df.index)
-    ).astype(int)
-    out["aucune_maladie"]             = _binary_flag(df.get("_v37", pd.Series(0, index=df.index)))
+        out[f"maladie_{col}"] = _binary_flag(_col(df, col, 0))
 
-    # Nombre de types de maladies dans le ménage (variable IV_count)
+    out["maladies_liste"]     = _concat_flags(df, maladies)
+    out["nb_maladies"]        = _sum_flags(df, [c for c, l in maladies if l != "Aucune maladie"])
+    out["aucune_maladie"]     = _binary_flag(_col(df, "_v37", 0))
+
+    # IV_count = nombre total de types de maladies dans le ménage
     if "IV_count" in df.columns:
-        out["nb_types_maladies_menage"] = pd.to_numeric(_col(df, "IV_count"), errors="coerce")
+        out["nb_types_maladies_menage"] = pd.to_numeric(df["IV_count"], errors="coerce")
 
-    # Indicateur synthétique : ménage touché par au moins une maladie liée aux déchets
-    # (hors rhume/aucune qui peuvent être non liés)
-    maladies_dechets_cols = ["_v31", "_v33", "_v34", "_v35", "_v36"]  # asthme, sinusite, toux, nausées, démangeaisons
-    presence_maladie = sum(
-        (df[col].fillna(0) for col in maladies_dechets_cols if col in df.columns),
-        pd.Series(0, index=df.index)
-    )
-    out["maladie_potentiellement_liee_dechets"] = (presence_maladie >= 1).map(
-        {True: "Oui", False: "Non"}
-    )
-
-    # Perception sur les conséquences — non collectée directement comme variable unique
-    # On peut la dériver de la présence de dépôts sauvages + maladies signalées
-    # Proxy : ménage signale nuisibles ET maladies
-    if "nb_nuisibles" in df.columns:
-        has_nuisibles = df.get("_v23", pd.Series(0, index=df.index)).fillna(0)
-    else:
-        has_nuisibles = pd.Series(0, index=df.index)
-
-    out["perception_risque_sanitaire"] = np.nan  # Variable narrative non structurée
-
-    # Suggestions d'amélioration (open-ended III_33) — conservé comme texte
-    if "III_33" in df.columns:
-        out["suggestions_amelioration"] = _col(df, "III_33").astype(str).replace({"nan": np.nan})
+    # Indicateur : au moins une maladie potentiellement liée aux déchets
+    # (asthme, sinusite, toux, nausées, démangeaisons — hors fièvre et rhume)
+    cols_liees = ["_v31", "_v33", "_v34", "_v35", "_v36"]
+    somme_liees = _sum_flags(df, cols_liees)
+    out["maladie_liee_dechets"] = (somme_liees >= 1).map({True: "Oui", False: "Non"})
 
     logger.info(f"Bloc D (conséquences) : {out.shape[1]} variables construites.")
     return out
 
 
 # ---------------------------------------------------------------------------
-# Point d'entrée du module
+# Point d'entrée
 # ---------------------------------------------------------------------------
 
-def run(df_raw: pd.DataFrame) -> pd.DataFrame:
-    """
-    Construit toutes les variables analytiques et retourne la table consolidée.
-    """
+def run(df_raw):
     blocs = [
-        ("menage",       build_menage(df_raw)),
-        ("cm",           build_cm(df_raw)),
-        ("dechets",      build_dechets(df_raw)),
-        ("consequences", build_consequences(df_raw)),
+        build_menage(df_raw),
+        build_cm(df_raw),
+        build_dechets(df_raw),
+        build_consequences(df_raw),
     ]
-
-    df_final = pd.concat([b for _, b in blocs], axis=1)
-
-    # Réinitialiser l'index proprement
-    df_final = df_final.reset_index(drop=True)
-
+    df_final = pd.concat(blocs, axis=1).reset_index(drop=True)
     logger.info(f"Table consolidée : {df_final.shape[0]} lignes × {df_final.shape[1]} colonnes.")
     return df_final
