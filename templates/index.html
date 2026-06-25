@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Pipeline Déchets Ménagers — ENSAE / UCG</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap');
+
+    :root {
+      --bg:        #0e1117;
+      --surface:   #161b27;
+      --border:    #252d3d;
+      --accent:    #2ecc71;
+      --accent2:   #27ae60;
+      --warn:      #f39c12;
+      --danger:    #e74c3c;
+      --text:      #e8eaf0;
+      --muted:     #6b7799;
+      --mono:      'IBM Plex Mono', monospace;
+      --sans:      'IBM Plex Sans', sans-serif;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 20px 40px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .logo-badge {
+      width: 36px; height: 36px;
+      background: var(--accent);
+      border-radius: 6px;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--mono);
+      font-weight: 600;
+      font-size: 14px;
+      color: #000;
+      flex-shrink: 0;
+    }
+
+    header h1 {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    header p {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 2px;
+    }
+
+    .version-tag {
+      margin-left: auto;
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+
+    /* ── Main layout ── */
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 0;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 40px 24px;
+    }
+
+    /* ── Upload zone ── */
+    .upload-section { padding-right: 48px; }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      color: var(--accent);
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+
+    .upload-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 10px;
+      padding: 56px 32px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .upload-zone:hover, .upload-zone.dragover {
+      border-color: var(--accent);
+      background: rgba(46, 204, 113, 0.04);
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+    }
+
+    .upload-icon {
+      font-size: 36px;
+      margin-bottom: 16px;
+      display: block;
+    }
+
+    .upload-zone h2 {
+      font-size: 17px;
+      font-weight: 600;
+      margin-bottom: 8px;
+    }
+
+    .upload-zone p {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .file-badge {
+      display: none;
+      margin-top: 20px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 10px 16px;
+      font-family: var(--mono);
+      font-size: 12px;
+      color: var(--accent);
+      align-items: center;
+      gap: 8px;
+    }
+
+    .file-badge.visible { display: flex; }
+
+    /* ── Button ── */
+    .btn-run {
+      margin-top: 24px;
+      width: 100%;
+      padding: 14px;
+      background: var(--accent);
+      color: #000;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-run:hover:not(:disabled) { background: var(--accent2); }
+    .btn-run:active:not(:disabled) { transform: scale(0.99); }
+    .btn-run:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    /* ── Progress / Log ── */
+    .log-box {
+      margin-top: 28px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      display: none;
+    }
+
+    .log-box.visible { display: block; }
+
+    .log-title {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 14px;
+    }
+
+    .log-lines {
+      font-family: var(--mono);
+      font-size: 12px;
+      line-height: 1.8;
+      color: var(--muted);
+    }
+
+    .log-line.ok   { color: var(--accent); }
+    .log-line.warn { color: var(--warn); }
+    .log-line.err  { color: var(--danger); }
+    .log-line.info { color: var(--text); }
+
+    /* Spinner */
+    .spinner {
+      width: 16px; height: 16px;
+      border: 2px solid rgba(0,0,0,0.2);
+      border-top-color: #000;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+    .spinning .spinner { display: block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Download card ── */
+    .download-card {
+      margin-top: 24px;
+      background: rgba(46, 204, 113, 0.06);
+      border: 1px solid var(--accent);
+      border-radius: 8px;
+      padding: 20px;
+      display: none;
+    }
+    .download-card.visible { display: block; }
+    .download-card h3 { font-size: 14px; margin-bottom: 6px; }
+    .download-card p  { font-size: 12px; color: var(--muted); margin-bottom: 16px; }
+
+    .btn-download {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 18px;
+      background: var(--accent);
+      color: #000;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 6px;
+      text-decoration: none;
+      width: fit-content;
+      transition: background 0.2s;
+    }
+    .btn-download:hover { background: var(--accent2); }
+
+    /* ── Sidebar ── */
+    .sidebar {
+      border-left: 1px solid var(--border);
+      padding-left: 40px;
+    }
+
+    .info-block { margin-bottom: 36px; }
+
+    .info-block h3 {
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 13px;
+    }
+
+    .stat-row:last-child { border-bottom: none; }
+
+    .stat-val {
+      font-family: var(--mono);
+      font-size: 13px;
+      color: var(--accent);
+    }
+
+    .output-tag {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+
+    .output-tag .ext {
+      font-family: var(--mono);
+      font-size: 10px;
+      font-weight: 600;
+      padding: 2px 6px;
+      border-radius: 3px;
+      background: var(--border);
+      color: var(--accent);
+      flex-shrink: 0;
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 16px 40px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      font-family: var(--mono);
+    }
+
+    @media (max-width: 768px) {
+      main { grid-template-columns: 1fr; padding: 24px 16px; }
+      .upload-section { padding-right: 0; margin-bottom: 40px; }
+      .sidebar { border-left: none; border-top: 1px solid var(--border); padding-left: 0; padding-top: 32px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo-badge">DM</div>
+  <div>
+    <h1>Pipeline Déchets Ménagers</h1>
+    <p>ENSAE · UCG · Région de Dakar</p>
+  </div>
+  <span class="version-tag">v1.0</span>
+</header>
+
+<main>
+  <!-- Zone principale -->
+  <div class="upload-section">
+    <div class="section-label">Traitement de données</div>
+
+    <div class="upload-zone" id="dropzone">
+      <input type="file" id="fileInput" accept=".dta">
+      <span class="upload-icon">📂</span>
+      <h2>Déposez votre fichier ici</h2>
+      <p>Glissez-déposez un fichier <strong>.dta</strong> (Stata)<br>ou cliquez pour parcourir</p>
+    </div>
+
+    <div class="file-badge" id="fileBadge">
+      <span>📄</span>
+      <span id="fileName">—</span>
+    </div>
+
+    <button class="btn-run" id="btnRun" disabled>
+      <div class="spinner" id="spinner"></div>
+      <span id="btnText">▶ Lancer le pipeline</span>
+    </button>
+
+    <!-- Log d'exécution -->
+    <div class="log-box" id="logBox">
+      <div class="log-title">Journal d'exécution</div>
+      <div class="log-lines" id="logLines"></div>
+    </div>
+
+    <!-- Téléchargement -->
+    <div class="download-card" id="downloadCard">
+      <h3>✓ Traitement terminé</h3>
+      <p>3 fichiers générés — CSV, DTA et rapport QAQC</p>
+      <a id="downloadLink" class="btn-download" href="#" download="resultats_pipeline.zip">
+        ⬇ Télécharger les résultats (.zip)
+      </a>
+    </div>
+  </div>
+
+  <!-- Sidebar -->
+  <div class="sidebar">
+    <div class="info-block">
+      <h3>Ce que fait le pipeline</h3>
+      <div class="stat-row"><span>Ménages traités</span><span class="stat-val">2 474</span></div>
+      <div class="stat-row"><span>Variables construites</span><span class="stat-val">132</span></div>
+      <div class="stat-row"><span>Contrôles qualité</span><span class="stat-val">49</span></div>
+      <div class="stat-row"><span>Durée estimée</span><span class="stat-val">~3 sec</span></div>
+    </div>
+
+    <div class="info-block">
+      <h3>Fichiers produits</h3>
+      <div class="output-tag">
+        <span class="ext">CSV</span>
+        <span>Table analytique finale</span>
+      </div>
+      <div class="output-tag">
+        <span class="ext">DTA</span>
+        <span>Format Stata avec labels</span>
+      </div>
+      <div class="output-tag">
+        <span class="ext">XLSX</span>
+        <span>Rapport QAQC — 6 onglets</span>
+      </div>
+    </div>
+
+    <div class="info-block">
+      <h3>Blocs de variables</h3>
+      <div class="stat-row"><span>A — Ménage</span><span class="stat-val">12 var.</span></div>
+      <div class="stat-row"><span>B — Chef de ménage</span><span class="stat-val">19 var.</span></div>
+      <div class="stat-row"><span>C — Déchets</span><span class="stat-val">87 var.</span></div>
+      <div class="stat-row"><span>D — Conséquences</span><span class="stat-val">14 var.</span></div>
+    </div>
+
+    <div class="info-block">
+      <h3>Format d'entrée</h3>
+      <div class="stat-row"><span>Type de fichier</span><span class="stat-val">.dta</span></div>
+      <div class="stat-row"><span>Logiciel source</span><span class="stat-val">Stata</span></div>
+      <div class="stat-row"><span>Encodage requis</span><span class="stat-val">UTF-8</span></div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <span>ENSAE — Projet Groupe 5 — Insalubrité &amp; Gestion des Déchets</span>
+  <span>pipeline v1.0 · FastAPI · Python</span>
+</footer>
+
+<script>
+  const fileInput   = document.getElementById('fileInput');
+  const dropzone    = document.getElementById('dropzone');
+  const fileBadge   = document.getElementById('fileBadge');
+  const fileName    = document.getElementById('fileName');
+  const btnRun      = document.getElementById('btnRun');
+  const btnText     = document.getElementById('btnText');
+  const spinner     = document.getElementById('spinner');
+  const logBox      = document.getElementById('logBox');
+  const logLines    = document.getElementById('logLines');
+  const downloadCard = document.getElementById('downloadCard');
+  const downloadLink = document.getElementById('downloadLink');
+
+  let selectedFile = null;
+
+  function setFile(file) {
+    if (!file || !file.name.endsWith('.dta')) {
+      alert('Veuillez sélectionner un fichier .dta (Stata).');
+      return;
+    }
+    selectedFile = file;
+    fileName.textContent = file.name + '  ·  ' + (file.size / 1024).toFixed(0) + ' KB';
+    fileBadge.classList.add('visible');
+    btnRun.disabled = false;
+    downloadCard.classList.remove('visible');
+    logBox.classList.remove('visible');
+    logLines.innerHTML = '';
+  }
+
+  fileInput.addEventListener('change', e => setFile(e.target.files[0]));
+
+  dropzone.addEventListener('dragover', e => { e.preventDefault(); dropzone.classList.add('dragover'); });
+  dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+  dropzone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    setFile(e.dataTransfer.files[0]);
+  });
+
+  function addLog(text, type = 'info') {
+    const line = document.createElement('div');
+    line.className = 'log-line ' + type;
+    line.textContent = text;
+    logLines.appendChild(line);
+  }
+
+  btnRun.addEventListener('click', async () => {
+    if (!selectedFile) return;
+
+    // UI : état chargement
+    btnRun.disabled = true;
+    btnRun.classList.add('spinning');
+    btnText.textContent = 'Traitement en cours...';
+    logBox.classList.add('visible');
+    logLines.innerHTML = '';
+    downloadCard.classList.remove('visible');
+
+    addLog('→ Envoi du fichier vers l\'API...', 'info');
+    addLog('→ Chargement et validation des données brutes...', 'info');
+
+    const formData = new FormData();
+    formData.append('file', selectedFile);
+
+    try {
+      const response = await fetch('/api/process', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        addLog('✗ Erreur : ' + (err.detail || 'Traitement échoué'), 'err');
+        return;
+      }
+
+      addLog('✓ Étape 1/4 — Chargement et contrôles qualité', 'ok');
+      addLog('✓ Étape 2/4 — Construction des 132 variables analytiques', 'ok');
+      addLog('✓ Étape 3/4 — Export CSV et Stata (.dta)', 'ok');
+      addLog('✓ Étape 4/4 — Génération du rapport QAQC', 'ok');
+      addLog('✓ Pipeline terminé avec succès', 'ok');
+
+      // Préparer le téléchargement
+      const blob = await response.blob();
+      const url  = URL.createObjectURL(blob);
+      downloadLink.href = url;
+      downloadCard.classList.add('visible');
+
+    } catch (err) {
+      addLog('✗ Erreur réseau : ' + err.message, 'err');
+    } finally {
+      btnRun.disabled = false;
+      btnRun.classList.remove('spinning');
+      btnText.textContent = '▶ Lancer le pipeline';
+    }
+  });
+</script>
+
+</body>
+</html>
