@@ -1,12 +1,6 @@
 # =============================================================================
 # loader.py — Chargement, nettoyage de base et contrôles de cohérence
 # =============================================================================
-# Ce module :
-#   1. Charge le fichier .dta depuis /input
-#   2. Nettoie les types et codes manquants
-#   3. Applique les contrôles de cohérence (outliers, incohérences logiques)
-#   4. Retourne (df_clean, qc_log) — le log alimente le rapport QAQC
-# =============================================================================
 
 import os
 import logging
@@ -22,31 +16,14 @@ from config import (
 
 logger = logging.getLogger(__name__)
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
 
 def _to_numeric_or_nan(series):
-    """Convertit proprement une série object (codes numériques stockés en str) en float."""
     return pd.to_numeric(series, errors="coerce")
 
 
 def _flag_outlier(df, col, lo, hi, label, qc_log):
-    """
-    Met à NaN les valeurs hors bornes [lo, hi] et journalise.
-    Retourne le df modifié.
-    Si la colonne est absente, signale l'anomalie et ignore le contrôle.
-    """
     if col not in df.columns:
-        logger.warning(f"Colonne attendue absente : '{col}' ({label}) — contrôle outlier ignoré.")
-        qc_log.append({
-            "check": f"colonne_absente_{col}",
-            "description": f"{label} : colonne '{col}' introuvable dans les données",
-            "n_affected": 0,
-            "action": "Contrôle outlier ignoré",
-        })
         return df
-
     mask = df[col].notna() & ((df[col] < lo) | (df[col] > hi))
     n = mask.sum()
     if n > 0:
@@ -61,11 +38,10 @@ def _flag_outlier(df, col, lo, hi, label, qc_log):
 
 
 def _flag_incoherence(df, mask, label, action, qc_log):
-    """Journalise une incohérence logique sans forcément modifier les données."""
     n = mask.sum()
     if n > 0:
         qc_log.append({
-            "check": f"incoherence",
+            "check": "incoherence",
             "description": label,
             "n_affected": int(n),
             "action": action,
@@ -73,39 +49,23 @@ def _flag_incoherence(df, mask, label, action, qc_log):
     return n
 
 
-# ---------------------------------------------------------------------------
-# Chargement principal
-# ---------------------------------------------------------------------------
-
 def load_raw(filepath: str):
-    """Charge le .dta et retourne (df, meta)."""
     logger.info(f"Chargement : {filepath}")
     df, meta = pyreadstat.read_dta(filepath)
     logger.info(f"Dimensions brutes : {df.shape[0]} lignes × {df.shape[1]} colonnes")
+    logger.info(f"Colonnes disponibles : {list(df.columns)}")
     return df, meta
 
 
-# ---------------------------------------------------------------------------
-# Nettoyage des types
-# ---------------------------------------------------------------------------
-
 def clean_types(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
-    """
-    - Convertit les colonnes object contenant des codes numériques en int/float
-      (sauf les colonnes 'other' textuelles et les colonnes de codes-choix multiples
-       qui doivent rester en string pour le mapping).
-    - Remplace les chaînes vides par NaN.
-    - Conserve les colonnes de type string multi-choix (III_17, II_1, II_2…).
-    """
     df = df.copy()
 
-    # Colonnes "other" textuelles : on garde en str, on nettoie juste les espaces
+    # Colonnes "other" textuelles
     other_cols = [c for c in df.columns if c.endswith("_other")]
     for col in other_cols:
         df[col] = df[col].astype(str).str.strip().replace({"": np.nan, "nan": np.nan})
 
-    # Colonnes de codes stockés en string (catégoriels nominaux)
-    # On les garde en string propre (sans espaces) pour que les mappings fonctionnent
+    # Colonnes codes catégoriels en string
     str_cat_cols = [
         "I_4", "I_7", "I_10", "II_3", "II_5", "II_22", "II_23",
         "III_4", "III_23", "III_26", "III_30", "Commune",
@@ -114,23 +74,22 @@ def clean_types(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip().replace({"": np.nan, "nan": np.nan})
 
-    # Colonnes chaînes vides → NaN (colonnes multi-réponses textuelles)
+    # Colonnes multi-réponses textuelles
     multichoix_cols = ["III_7", "III_9", "III_16", "III_20", "III_32", "III_33"]
     for col in multichoix_cols:
         if col in df.columns:
             df[col] = df[col].astype(str).str.strip().replace({"": np.nan, "nan": np.nan})
 
-    # Variables continues : s'assurer qu'elles sont bien numériques
+    # Variables continues
     num_cols = ["I_3", "I_9", "I_5_1", "I_5_2", "I_5_3", "I_5_4", "III_1"]
     for col in num_cols:
         if col in df.columns:
             df[col] = _to_numeric_or_nan(df[col])
 
-    # I_5 (taille ménage totale) — stocké en str dans certaines éditions
     if "I_5" in df.columns:
         df["I_5"] = _to_numeric_or_nan(df["I_5"])
 
-    # Colonnes de type Likert (int64 avec labels) : vérification minimale
+    # Colonnes Likert et binaires
     likert_cols = [
         "I_2", "I_6", "I_8", "I_11",
         "I_12_1", "I_12_2", "I_12_3", "I_12_4", "I_12_5",
@@ -147,7 +106,6 @@ def clean_types(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
         if col in df.columns:
             df[col] = _to_numeric_or_nan(df[col])
 
-    # Colonnes binaires 0/1 multi-sélection
     binary_cols = [c for c in df.columns if c.startswith("_v")]
     for col in binary_cols:
         df[col] = _to_numeric_or_nan(df[col])
@@ -156,37 +114,17 @@ def clean_types(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
-# Contrôles de cohérence et outliers
-# ---------------------------------------------------------------------------
-
 def quality_checks(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
-    """
-    Applique les contrôles de qualité :
-    - Outliers sur âges et tailles
-    - Cohérences logiques (skip patterns)
-    - Taux de manquants élevés
-    """
     df = df.copy()
 
-    # --- Outliers âge répondant ---
-    df = _flag_outlier(df, "I_3", QC_AGE_MIN, QC_AGE_MAX,
-                       "Âge répondant", qc_log)
+    # Outliers âge
+    df = _flag_outlier(df, "I_3", QC_AGE_MIN, QC_AGE_MAX, "Âge répondant", qc_log)
+    df = _flag_outlier(df, "I_9", QC_AGE_MIN, QC_AGE_MAX, "Âge chef de ménage", qc_log)
+    df = _flag_outlier(df, "I_5", 0, QC_TAILLE_MAX, "Taille ménage totale", qc_log)
 
-    # --- Outliers âge CM ---
-    df = _flag_outlier(df, "I_9", QC_AGE_MIN, QC_AGE_MAX,
-                       "Âge chef de ménage", qc_log)
-
-    # --- Taille ménage ---
-    if "I_5" in df.columns:
-        df = _flag_outlier(df, "I_5", 0, QC_TAILLE_MAX,
-                           "Taille ménage totale", qc_log)
-
-    # --- Durée dans le quartier (III_1 est binaire ici, pas de contrôle numérique) ---
-
-    # --- Cohérence : si II_13 = 2 (pas de benne), II_14/16/17/18/19/20 doivent être NaN ---
-    cols_benne_detail = ["II_14", "II_16", "II_17", "II_18", "II_19", "II_20"]
+    # Cohérence benne tasseuse
     if "II_13" in df.columns:
+        cols_benne_detail = ["II_14", "II_16", "II_17", "II_18", "II_19", "II_20"]
         mask_no_benne = df["II_13"] == 2
         for col in cols_benne_detail:
             if col in df.columns:
@@ -198,45 +136,34 @@ def quality_checks(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
                     qc_log,
                 )
 
-    # --- Cohérence : II_24 payant, mais II_25_1 manquant ---
+    # Cohérence payant sans montant
     if "II_24" in df.columns and "II_25_1" in df.columns:
-        mask_payant_sans_montant = (df["II_24"] == 1) & df["II_25_1"].isna()
-        _flag_incoherence(
-            df, mask_payant_sans_montant,
+        mask = (df["II_24"] == 1) & df["II_25_1"].isna()
+        _flag_incoherence(df, mask,
             "Service déclaré payant (II_24=1) mais montant manquant (II_25_1)",
-            "Conservé comme NaN — montant inconnu",
-            qc_log,
-        )
+            "Conservé comme NaN — montant inconnu", qc_log)
 
-    # --- Cohérence : II_8 = Non (ne revend pas), mais II_9 renseigné ---
-    binary_v_rev = ["_v18", "_v19", "_v20", "_v21", "_v22"]
+    # Cohérence revente
     if "II_8" in df.columns:
         mask_no_revente = df["II_8"] == 2
-        for col in binary_v_rev:
+        for col in ["_v18", "_v19", "_v20", "_v21", "_v22"]:
             if col in df.columns:
                 incoherent = mask_no_revente & (df[col] == 1)
-                _flag_incoherence(
-                    df, incoherent,
+                _flag_incoherence(df, incoherent,
                     f"Pas de revente (II_8=2) mais {col}=1",
-                    "Conservé — possible erreur de saisie",
-                    qc_log,
-                )
+                    "Conservé — possible erreur de saisie", qc_log)
 
-    # --- Cohérence : III_12 = Non (pas de dépôts sauvages), mais III_13/14 renseignés ---
+    # Cohérence dépôts sauvages
     if "III_12" in df.columns:
         mask_no_depot = df["III_12"] == 3
         for col in ["III_13", "III_14"]:
             if col in df.columns:
                 incoherent = mask_no_depot & df[col].notna()
-                _flag_incoherence(
-                    df, incoherent,
+                _flag_incoherence(df, incoherent,
                     f"Pas de dépôt sauvage (III_12=3) mais {col} renseigné",
-                    "Conservé — skip pattern",
-                    qc_log,
-                )
+                    "Conservé — skip pattern", qc_log)
 
-    # --- Taux de manquants par variable ---
-    n = len(df)
+    # Taux de manquants
     for col in df.columns:
         rate = df[col].isna().mean()
         if rate > QC_MISSING_THRESH:
@@ -251,15 +178,7 @@ def quality_checks(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
     return df
 
 
-# ---------------------------------------------------------------------------
-# Point d'entrée du module
-# ---------------------------------------------------------------------------
-
 def run(qc_log: list) -> tuple:
-    """
-    Charge, nettoie et contrôle les données.
-    Retourne (df_clean, meta).
-    """
     filepath = os.path.join(INPUT_DIR, INPUT_FILE)
     df, meta = load_raw(filepath)
     df = clean_types(df, qc_log)
