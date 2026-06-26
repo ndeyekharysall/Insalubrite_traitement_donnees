@@ -5,7 +5,7 @@
 
 ## 📋 Présentation
 
-Ce projet implémente un **pipeline de traitement de données reproductible et scalable** pour l'enquête sur la gestion des ordures ménagères dans la région de Dakar, menée conjointement par l'ENSAE et l'UCG (Unité de Coordination de la Gestion des Déchets Solides).
+Ce projet implémente un **pipeline de traitement de données reproductible et scalable ** pour l'enquête sur la gestion des ordures ménagères dans la région de Dakar au Sénégal, menée conjointement par l'ENSAE et l'UCG (Unité de Coordination de la Gestion des Déchets Solides).
 
 Le pipeline extrait, nettoie, transforme et stocke les données brutes (format Stata `.dta`) en une table analytique consolidée, accompagnée d'un rapport de contrôle qualité.
 
