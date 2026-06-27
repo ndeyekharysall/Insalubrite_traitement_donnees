@@ -127,7 +127,7 @@ Variables clés :
 
 ### 1. Cloner le projet
 ```bash
-git clone https://github.com/votre-groupe/Groupe5_Insalubrite_traitement_donnees.git
+git clone https://github.com/ndeyekharysall/Insalubrite_traitement_donnees
 cd Groupe5_Insalubrite_traitement_donnees
 ```
 
