@@ -17,8 +17,36 @@ from config import (
 logger = logging.getLogger(__name__)
 
 
+# Modalités valides définies par le QUESTIONNAIRE PAPIER (codebook).
+# Toute valeur hors de cet ensemble est une anomalie de saisie : on la journalise
+# puis on la met à NaN (au lieu de la perdre silencieusement au mapping).
+# -> extensible : ajouter ici d'autres variables strictes si besoin.
+VALID_CODES = {
+    "II_13": {1, 2},   # II.13 Bennes tasseuses : Oui / Non uniquement (papier)
+}
+
+
 def _to_numeric_or_nan(series):
     return pd.to_numeric(series, errors="coerce")
+
+
+def _flag_invalid_codes(df, col, valid, label, qc_log):
+    """Journalise (et neutralise en NaN) les codes hors modalités du questionnaire."""
+    if col not in df.columns:
+        return df
+    s = df[col]
+    mask = s.notna() & ~s.isin(list(valid))
+    n = int(mask.sum())
+    if n > 0:
+        vals = sorted(pd.unique(s[mask].dropna()).tolist())
+        qc_log.append({
+            "check": f"code_invalide_{col}",
+            "description": f"{label} : valeurs hors modalités {sorted(valid)} rencontrées -> {vals}",
+            "n_affected": n,
+            "action": "Remplacé par NaN (hors questionnaire papier)",
+        })
+        df.loc[mask, col] = np.nan
+    return df
 
 
 def _flag_outlier(df, col, lo, hi, label, qc_log):
@@ -121,6 +149,22 @@ def quality_checks(df: pd.DataFrame, qc_log: list) -> pd.DataFrame:
     df = _flag_outlier(df, "I_3", QC_AGE_MIN, QC_AGE_MAX, "Âge répondant", qc_log)
     df = _flag_outlier(df, "I_9", QC_AGE_MIN, QC_AGE_MAX, "Âge chef de ménage", qc_log)
     df = _flag_outlier(df, "I_5", 0, QC_TAILLE_MAX, "Taille ménage totale", qc_log)
+
+    # Codes hors modalités du questionnaire papier (ex : II_13 doit être 1 ou 2)
+    for col, valid in VALID_CODES.items():
+        df = _flag_invalid_codes(df, col, valid, f"Variable {col}", qc_log)
+
+    # Commune manquante -> département non dérivable
+    if "Commune" in df.columns:
+        mask_commune = df["Commune"].isna()
+        n_commune = int(mask_commune.sum())
+        if n_commune > 0:
+            qc_log.append({
+                "check": "commune_manquante",
+                "description": "Commune non renseignée -> departement/commune_libelle non dérivables",
+                "n_affected": n_commune,
+                "action": "Conservé — geo en NaN",
+            })
 
     # Cohérence benne tasseuse
     if "II_13" in df.columns:
