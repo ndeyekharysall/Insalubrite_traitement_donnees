@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>L'équipe — Groupe 5 · Pipeline Déchets Ménagers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --serif:'Source Serif 4',Georgia,serif;
+  --sans:'Inter',system-ui,-apple-system,sans-serif;
+  --bg:#f3f1ea;--surface:#faf8f1;--surface-alt:#efece1;--card:#fffdf7;--card-border:#e6dfc9;
+  --text:#1c1a13;--text-muted:#6b6552;--primary:#006c49;--primary-bright:#10b981;
+  --gold:#c8a44a;--gold-light:#f3e2a0;--gold-bright:#fff7da;--gold-deep:#9c7b27;
+  --navy:#064E3B;--navy-text:#cdddf2;
+  --header-bg:rgba(250,248,241,.82);--shadow:0 8px 30px -8px rgba(80,64,16,.18);
+  --r-card:16px;--r-btn:8px;
+}
+[data-theme="dark"]{
+  --bg:#0c120e;--surface:#10171210;--surface-alt:#161e18;--card:#121a14;--card-border:#2a3a2c;
+  --text:#f1ece0;--text-muted:#9fa896;--primary:#10b981;--primary-bright:#34d399;
+  --gold:#e8c45f;--gold-light:#f8e9a8;--gold-bright:#fffceb;--gold-deep:#caa23c;
+  --navy:#053d2e;;--navy-text:#aebfd6;
+  --header-bg:rgba(12,18,14,.74);--shadow:0 10px 40px -10px rgba(0,0,0,.65);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:var(--sans);color:var(--text);line-height:1.5;min-height:100vh;
+  display:flex;flex-direction:column;-webkit-font-smoothing:antialiased;
+  background:
+    radial-gradient(1100px 520px at 50% -10%,rgba(200,164,74,.16),transparent 60%),
+    radial-gradient(700px 500px at 12% 18%,rgba(16,185,129,.08),transparent 55%),
+    radial-gradient(700px 500px at 88% 30%,rgba(200,164,74,.10),transparent 55%),
+    var(--bg);
+  transition:background .4s ease,color .4s ease}
+h1,h2,h3{font-family:var(--serif);letter-spacing:-.01em;line-height:1.15}
+a{color:inherit;text-decoration:none}
+.container{max-width:1080px;margin:0 auto;padding:0 24px;width:100%}
+
+/* Header */
+header{position:sticky;top:0;z-index:50;background:var(--header-bg);
+  backdrop-filter:saturate(160%) blur(14px);-webkit-backdrop-filter:saturate(160%) blur(14px);
+  border-bottom:1px solid var(--card-border);transition:background .4s,border-color .4s}
+.nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{font-family:var(--serif);font-weight:700;font-size:18px}
+.nav-links{display:flex;align-items:center;gap:28px}
+.nav-links a{font-size:14px;font-weight:500;color:var(--text-muted);transition:color .2s}
+.nav-links a:hover{color:var(--text)}
+.nav-actions{display:flex;align-items:center;gap:10px}
+.icon-btn{width:38px;height:38px;display:grid;place-items:center;border:1px solid var(--card-border);
+  border-radius:var(--r-btn);background:var(--card);color:var(--text-muted);cursor:pointer;transition:.2s}
+.icon-btn:hover{color:var(--gold-deep);border-color:var(--gold)}
+.icon-btn.active{color:var(--gold-deep);border-color:var(--gold)}
+.icon-btn svg{width:18px;height:18px}
+.theme-toggle .sun{display:none}
+[data-theme="dark"] .theme-toggle .moon{display:none}
+[data-theme="dark"] .theme-toggle .sun{display:block}
+.menu-btn{display:none}
+
+/* Gold shimmer text */
+.shimmer{
+  background:linear-gradient(110deg,var(--gold-deep) 0%,var(--gold) 20%,var(--gold-bright) 50%,var(--gold) 80%,var(--gold-deep) 100%);
+  background-size:200% auto;-webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:shine 5s linear infinite}
+@keyframes shine{to{background-position:-200% center}}
+
+/* Sparkles (poudre d'or) */
+.sparkles{position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden}
+.sparkle{position:absolute;width:4px;height:4px;border-radius:999px;background:var(--gold-light);
+  box-shadow:0 0 6px 1px var(--gold);opacity:.0;animation:twinkle 4.5s ease-in-out infinite}
+@keyframes twinkle{0%,100%{opacity:0;transform:scale(.4)}50%{opacity:.9;transform:scale(1)}}
+
+main{flex:1;position:relative;z-index:1;padding:72px 0 80px;text-align:center}
+
+/* Hero */
+.eyebrow{font-size:12px;font-weight:700;letter-spacing:.32em;text-transform:uppercase;color:var(--gold-deep);margin-bottom:18px}
+.hero h1{font-size:clamp(38px,6vw,60px);font-weight:700;margin-bottom:18px}
+.hero p{max-width:600px;margin:0 auto;font-size:17px;color:var(--text-muted);line-height:1.7}
+.divider{width:170px;height:2px;margin:34px auto 0;border-radius:2px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);position:relative}
+.divider::after{content:"✦";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  color:var(--gold);font-size:14px;background:var(--bg);padding:0 10px}
+
+/* Team grid */
+.team{display:grid;grid-template-columns:repeat(4,1fr);gap:22px;margin:64px 0 0}
+.member{position:relative;background:var(--card);border:1px solid var(--card-border);border-radius:var(--r-card);
+  padding:34px 22px;transition:transform .3s,box-shadow .3s,border-color .3s;overflow:hidden}
+.member::before{content:"";position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,transparent,var(--gold),transparent);opacity:.6;transition:opacity .3s}
+.member:hover{transform:translateY(-6px);box-shadow:var(--shadow),0 0 0 1px var(--gold);border-color:var(--gold)}
+.member:hover::before{opacity:1}
+.ring{width:90px;height:90px;margin:0 auto 20px;border-radius:999px;padding:3px;
+  background:conic-gradient(from 140deg,var(--gold-deep),var(--gold-bright),var(--gold),var(--gold-bright),var(--gold-deep));
+  animation:spin 7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.ring .inner{width:100%;height:100%;border-radius:999px;background:var(--surface-alt);
+  display:grid;place-items:center;font-family:var(--serif);font-weight:700;font-size:30px;color:var(--gold-deep)}
+.member h3{font-size:18px;font-weight:600;margin-bottom:6px;line-height:1.3}
+.member .role{font-size:12.5px;color:var(--text-muted);letter-spacing:.01em}
+.member .tag{display:inline-block;margin-top:14px;font-size:10px;font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--gold-deep);background:rgba(200,164,74,.13);
+  border:1px solid rgba(200,164,74,.3);padding:4px 12px;border-radius:999px}
+
+/* GitHub section */
+.repo{margin-top:72px;display:flex;flex-direction:column;align-items:center;gap:20px}
+.repo .label{font-size:13px;color:var(--text-muted);letter-spacing:.04em}
+.gh-btn{display:inline-flex;align-items:center;gap:12px;font-weight:600;font-size:15px;
+  padding:15px 28px;border-radius:var(--r-btn);color:var(--gold-bright);
+  background:linear-gradient(135deg,#064E3B,#0a6b50);border:1px solid var(--gold);
+  box-shadow:0 8px 26px -8px rgba(200,164,74,.5);transition:transform .25s,box-shadow .25s}
+[data-theme="dark"] .gh-btn{background:linear-gradient(135deg,#053d2e,#075c43)}
+.gh-btn:hover{transform:translateY(-2px);box-shadow:0 14px 36px -8px rgba(200,164,74,.7)}
+.gh-btn svg{width:22px;height:22px;fill:var(--gold-bright)}
+.repo-path{font-family:var(--sans);font-size:12.5px;color:var(--text-muted);word-break:break-all}
+.repo-path b{color:var(--gold-deep)}
+
+/* Footer */
+footer{background:var(--navy);border-top:1px solid rgba(255,255,255,.07);color:var(--navy-text);
+  padding:32px 0;position:relative;z-index:1}
+.foot{display:flex;justify-content:space-between;align-items:center;gap:20px;flex-wrap:wrap}
+.foot-brand{font-family:var(--serif);font-weight:700;font-size:16px;color:#fff}
+.foot p{font-size:12px;color:rgba(205,221,242,.65)}
+.foot a{font-size:12px;color:var(--navy-text)}.foot a:hover{color:#fff}
+
+@media(max-width:880px){.team{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:760px){
+  .nav-links{display:none}.menu-btn{display:grid}
+  .team{grid-template-columns:1fr;max-width:320px;margin-left:auto;margin-right:auto}
+  .foot{flex-direction:column;align-items:flex-start}
+}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="sparkles" id="sparkles"></div>
+
+<!-- HEADER -->
+<header>
+  <div class="container nav">
+    <div class="brand">ENSAE / UCG — Pipeline Déchets Ménagers</div>
+    <nav class="nav-links">
+      <a href="/">Accueil</a>
+      <a href="/app">Application</a>
+    </nav>
+    <div class="nav-actions">
+      <button class="icon-btn theme-toggle" id="themeToggle" aria-label="Changer de thème">
+        <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+        <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <a href="/equipe" class="icon-btn active" aria-label="L'équipe">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      </a>
+      <button class="icon-btn menu-btn" aria-label="Menu" onclick="location.href='/'">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="container hero">
+    <div class="eyebrow">Groupe 5</div>
+    <h1><span class="shimmer">L'équipe derrière le pipeline</span></h1>
+    <p>Quatre élèves analystes statisticiens en dernière année de formation, option Data Science de l'ENSAE Pierre NDIAYE réunis autour d'un même objectif : transformer une enquête brute sur l'insalubrité en une table analytique rigoureuse, reproductible et documentée.</p>
+    <div class="divider"></div>
+
+    <div class="team">
+      <div class="member">
+        <div class="ring"><div class="inner">FS</div></div>
+        <h3>Fatou Soumaya WADE</h3>
+        <div class="role">ENSAE Pierre NDIAYE · Dakar</div>
+        <span class="tag">Data Science</span>
+      </div>
+      <div class="member">
+        <div class="ring"><div class="inner">JN</div></div>
+        <h3>JEAZE NGUEMEZI Josée Clémence</h3>
+        <div class="role">ENSAE Pierre NDIAYE · Dakar</div>
+        <span class="tag">Data Science</span>
+      </div>
+      <div class="member">
+        <div class="ring"><div class="inner">NK</div></div>
+        <h3>Ndeye Khary SALL</h3>
+        <div class="role">ENSAE Pierre NDIAYE · Dakar</div>
+        <span class="tag">Data Science</span>
+      </div>
+      <div class="member">
+        <div class="ring"><div class="inner">ND</div></div>
+        <h3>NZONDE David Christ</h3>
+        <div class="role">ENSAE Pierre NDIAYE · Dakar</div>
+        <span class="tag">Data Science</span>
+      </div>
+    </div>
+
+    <div class="repo">
+      <span class="label">Le code source, en accès ouvert</span>
+      <a class="gh-btn" href="https://github.com/ndeyekharysall/Insalubrite_traitement_donnees" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 .5C5.7.5.5 5.7.5 12c0 5.1 3.3 9.4 7.9 10.9.6.1.8-.2.8-.5v-1.8c-3.2.7-3.9-1.5-3.9-1.5-.5-1.3-1.3-1.7-1.3-1.7-1.1-.7.1-.7.1-.7 1.2.1 1.8 1.2 1.8 1.2 1 1.8 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.6-.3-5.3-1.3-5.3-5.8 0-1.3.5-2.3 1.2-3.1-.1-.3-.5-1.5.1-3.2 0 0 1-.3 3.3 1.2a11.5 11.5 0 0 1 6 0C17.3 4.6 18.3 5 18.3 5c.6 1.7.2 2.9.1 3.2.8.8 1.2 1.8 1.2 3.1 0 4.5-2.7 5.5-5.3 5.8.4.4.8 1.1.8 2.2v3.3c0 .3.2.6.8.5 4.6-1.5 7.9-5.8 7.9-10.9C23.5 5.7 18.3.5 12 .5z"/></svg>
+        Découvrir le projet sur GitHub
+      </a>
+      <div class="repo-path">github.com/<b>ndeyekharysall</b>/Insalubrite_traitement_donnees</div>
+    </div>
+  </div>
+</main>
+
+<footer>
+  <div class="container foot">
+    <div>
+      <div class="foot-brand">ENSAE / UCG · Groupe 5</div>
+      <p>Pipeline Déchets Ménagers — Région de Dakar</p>
+    </div>
+    <div><a href="/">Retour à l'accueil</a></div>
+  </div>
+</footer>
+
+<script>
+const root=document.documentElement;
+const saved=localStorage.getItem('pipeline-theme');
+if(saved){root.setAttribute('data-theme',saved);}
+else if(window.matchMedia('(prefers-color-scheme: dark)').matches){root.setAttribute('data-theme','dark');}
+document.getElementById('themeToggle').addEventListener('click',()=>{
+  const next=root.getAttribute('data-theme')==='dark'?'light':'dark';
+  root.setAttribute('data-theme',next);localStorage.setItem('pipeline-theme',next);
+});
+/* poudre d'or */
+const sp=document.getElementById('sparkles');
+for(let i=0;i<14;i++){
+  const s=document.createElement('span');s.className='sparkle';
+  s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';
+  s.style.animationDelay=(Math.random()*4.5)+'s';
+  s.style.transform='scale('+(0.5+Math.random())+')';
+  sp.appendChild(s);
+}
+</script>
+</body>
+</html>

@@ -19,7 +19,7 @@ from config import (
     SATISFACTION_4PT, FREQUENCE_COMPORTEMENT,
     RAISON_INSATISFACTION_BACS, DEPOTS_SAUVAGES, DERNIER_DEPOT,
     GESTIONNAIRE_PLACE, GESTIONNAIRE_MARCHE, ORGANISATEUR_CAMPAGNE,
-    DEPARTEMENT,
+    DEPARTEMENT, COMMUNE_LIBELLE, COMMUNE_DEPARTEMENT, RAISON_NON_REVENTE,
 )
 
 logger = logging.getLogger(__name__)
@@ -48,7 +48,7 @@ def _oui_non(series):
 
 
 def _binary_flag(series):
-    return series.fillna(0).astype(int)
+    return pd.to_numeric(series, errors="coerce").fillna(0).astype(int)
 
 
 def _concat_flags(df, cols_labels, sep=" | "):
@@ -56,16 +56,16 @@ def _concat_flags(df, cols_labels, sep=" | "):
     available = [(c, l) for c, l in cols_labels if c in df.columns]
     if not available:
         return pd.Series(np.nan, index=df.index)
+    sub = df[[c for c, _ in available]]
     def row_labels(row):
         lbls = [l for c, l in available if row.get(c, 0) == 1]
         return sep.join(lbls) if lbls else np.nan
-    return df[list(dict.fromkeys([c for c, _ in available]))].assign(
-        **{c: df[c] for c, _ in available}
-    ).apply(row_labels, axis=1)
+    return sub.apply(row_labels, axis=1)
 
 
 def _sum_flags(df, cols):
-    return sum(_col(df, c).fillna(0) for c in cols).astype(int)
+    total = sum(pd.to_numeric(_col(df, c), errors="coerce").fillna(0) for c in cols)
+    return total.astype(int)
 
 
 # ---------------------------------------------------------------------------
@@ -76,11 +76,17 @@ def build_menage(df):
     out = pd.DataFrame(index=df.index)
 
     # Identifiants géographiques
-    out["commune_code"] = _col(df, "Commune").astype(str).str.strip().replace({"nan": np.nan})
-    out["quartier"]     = _col(df, "quartier").astype(str).str.strip().replace({"nan": np.nan})
+    # Commune est un 'byte' (codes 1..52 + value label labels0) -> on garde le
+    # code numérique propre et on dérive libellé + département du crosswalk.
+    commune_num = pd.to_numeric(_col(df, "Commune"), errors="coerce")
+    out["commune_code"]    = commune_num.astype("Int64")
+    out["commune_libelle"] = commune_num.map(COMMUNE_LIBELLE)
+    out["quartier"]        = _col(df, "quartier").astype(str).str.strip().replace({"nan": np.nan})
 
-    # Note : toute la zone est urbaine (Dakar), région non collectée comme variable
-    out["zone"] = "Région de Dakar (urbain)"
+    # Région fixe (enquête limitée à Dakar) + département dérivé de la commune
+    out["region"]      = "Dakar"
+    out["departement"] = commune_num.map(COMMUNE_DEPARTEMENT)
+    out["zone"]        = "Région de Dakar (urbain)"
 
     # Taille du ménage
     out["nb_enfants_0_4"]  = _col(df, "I_5_1").fillna(0).astype(int)
@@ -141,16 +147,18 @@ def build_cm(df):
     out["cm_type_enseignement"] = _map(_col(df, "I_10").astype(str), TYPE_ENSEIGNEMENT_CM)
     out["cm_niveau_instruction"] = _map(_col(df, "I_11"), NIVEAU_INSTRUCTION_CM)
 
-    # Alphabétisation CM
-    # Note : I_12_1 = Aucune langue (1=Oui sauf alpha), I_12_2 = Français, etc.
-    out["cm_alpha_aucune_langue"] = _map(_col(df, "I_12_1"), ALPHA)
-    out["cm_alpha_francais"]      = _map(_col(df, "I_12_2"), ALPHA)
-    out["cm_alpha_anglais"]       = _map(_col(df, "I_12_3"), ALPHA)
-    out["cm_alpha_arabe"]         = _map(_col(df, "I_12_4"), ALPHA)
-    out["cm_alpha_lng_nationale"] = _map(_col(df, "I_12_5"), ALPHA)  # _5 = langue étrangère dans la base
+    # Alphabétisation CM — ORDRE EXACT DU CODEBOOK :
+    #   I_12_1 = français     I_12_2 = anglais        I_12_3 = arabe
+    #   I_12_4 = langue nat.  I_12_5 = autre langue étrangère
+    # (l'ancien code décalait tout d'un cran et inventait une modalité "aucune langue")
+    out["cm_alpha_francais"]        = _map(_col(df, "I_12_1"), ALPHA)
+    out["cm_alpha_anglais"]         = _map(_col(df, "I_12_2"), ALPHA)
+    out["cm_alpha_arabe"]           = _map(_col(df, "I_12_3"), ALPHA)
+    out["cm_alpha_lng_nationale"]   = _map(_col(df, "I_12_4"), ALPHA)
+    out["cm_alpha_autre_etrangere"] = _map(_col(df, "I_12_5"), ALPHA)
 
-    # CM alphabétisé dans au moins une langue (autre que "aucune")
-    alpha_cols = ["I_12_2", "I_12_3", "I_12_4", "I_12_5"]
+    # CM alphabétisé dans AU MOINS UNE des 5 langues (modalité "Oui" = 1)
+    alpha_cols = ["I_12_1", "I_12_2", "I_12_3", "I_12_4", "I_12_5"]
     alpha_bin = pd.DataFrame({c: (_col(df, c) == 1).astype(float) for c in alpha_cols})
     out["cm_est_alphabetise"] = alpha_bin.max(axis=1).map({1.0: "Oui", 0.0: "Non"})
 
@@ -218,13 +226,7 @@ def build_dechets(df):
         ("_v21", "Plastique"), ("_v22", "Autre déchet revendu"),
     ]
     out["types_revendus_liste"] = _concat_flags(df, revendus)
-    out["raison_non_revente"]   = _col(df, "II_10").map({
-        1: "N'en a pas connaissance",
-        2: "Revenus faibles",
-        3: "Ne connaît pas les modes de revente",
-        4: "N'a pas le temps nécessaire",
-        5: "N'est pas intéressé",
-    })
+    out["raison_non_revente"]   = _map(_col(df, "II_10"), RAISON_NON_REVENTE)
 
     # --- II.11-II.12 Traitement ---
     out["proportion_traitee"]    = _map(_col(df, "II_11"), PROPORTION_TRAITEE)
@@ -247,8 +249,8 @@ def build_dechets(df):
     out["acces_benne_tasseuse"]   = _map(_col(df, "II_13"), ACCES_BENNE)
     out["benne_usage_regulier"]   = _oui_non(_col(df, "II_14"))
     out["distance_point_collecte"] = _map(_col(df, "II_16"), DISTANCE_COLLECTE)
-    out["benne_point_nettoyage"]  = _oui_non(_col(df, "II_17"))
-    out["benne_heure_convient"]   = _oui_non(_col(df, "II_17"))  # II_17 dans questionnaire
+    out["benne_point_nettoyage"]  = _oui_non(_col(df, "II_17"))   # II.17 nettoyage régulier
+    out["benne_heure_convient"]   = _oui_non(_col(df, "II_18"))   # II.18 heure de passage (était II_17 par erreur)
     out["frequence_benne"]        = _map(_col(df, "II_19"), FREQUENCE_BENNE)
     out["satisfaction_benne"]     = _map(_col(df, "II_20"), SATISFACTION_BENNE)
 
