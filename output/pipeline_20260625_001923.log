@@ -1,0 +1,16 @@
+2026-06-25 00:19:23,402 | INFO     | pipeline | =================================================================
+2026-06-25 00:19:23,402 | INFO     | pipeline |   PIPELINE DÉCHETS MÉNAGERS — DÉMARRAGE
+2026-06-25 00:19:23,402 | INFO     | pipeline |   2026-06-25 00:19:23
+2026-06-25 00:19:23,402 | INFO     | pipeline | =================================================================
+2026-06-25 00:19:23,402 | INFO     | pipeline | 
+[ÉTAPE 1/4] Chargement et contrôle qualité des données brutes...
+2026-06-25 00:19:23,402 | INFO     | loader | Chargement : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\input\Base.dta
+2026-06-25 00:19:23,507 | INFO     | loader | Dimensions brutes : 2474 lignes × 130 colonnes
+2026-06-25 00:19:23,509 | INFO     | loader | Nettoyage des types terminé.
+2026-06-25 00:19:23,510 | WARNING  | loader | Colonne attendue absente : 'I_3' (Âge répondant) — contrôle outlier ignoré.
+2026-06-25 00:19:23,510 | WARNING  | loader | Colonne attendue absente : 'I_9' (Âge chef de ménage) — contrôle outlier ignoré.
+2026-06-25 00:19:23,521 | INFO     | loader | Contrôles qualité : 10 signalements générés.
+2026-06-25 00:19:23,521 | INFO     | pipeline |   → 2474 ménages chargés, 10 anomalies détectées.
+2026-06-25 00:19:23,612 | INFO     | pipeline | 
+[ÉTAPE 2/4] Construction des variables analytiques...
+2026-06-25 00:19:23,613 | WARNING  | builder | Colonne brute absente : 'Commune' — variable(s) dérivée(s) mise(s) à NaN.
