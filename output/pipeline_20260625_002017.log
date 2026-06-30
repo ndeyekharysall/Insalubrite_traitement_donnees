@@ -1,0 +1,34 @@
+2026-06-25 00:20:17,845 | INFO     | pipeline | =================================================================
+2026-06-25 00:20:17,846 | INFO     | pipeline |   PIPELINE DÉCHETS MÉNAGERS — DÉMARRAGE
+2026-06-25 00:20:17,846 | INFO     | pipeline |   2026-06-25 00:20:17
+2026-06-25 00:20:17,846 | INFO     | pipeline | =================================================================
+2026-06-25 00:20:17,846 | INFO     | pipeline | 
+[ÉTAPE 1/4] Chargement et contrôle qualité des données brutes...
+2026-06-25 00:20:17,846 | INFO     | loader | Chargement : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\input\Base.dta
+2026-06-25 00:20:17,953 | INFO     | loader | Dimensions brutes : 2474 lignes × 130 colonnes
+2026-06-25 00:20:17,955 | INFO     | loader | Nettoyage des types terminé.
+2026-06-25 00:20:17,956 | WARNING  | loader | Colonne attendue absente : 'I_3' (Âge répondant) — contrôle outlier ignoré.
+2026-06-25 00:20:17,956 | WARNING  | loader | Colonne attendue absente : 'I_9' (Âge chef de ménage) — contrôle outlier ignoré.
+2026-06-25 00:20:17,969 | INFO     | loader | Contrôles qualité : 10 signalements générés.
+2026-06-25 00:20:17,970 | INFO     | pipeline |   → 2474 ménages chargés, 10 anomalies détectées.
+2026-06-25 00:20:17,970 | INFO     | pipeline | 
+[ÉTAPE 2/4] Construction des variables analytiques...
+2026-06-25 00:20:17,970 | WARNING  | builder | Colonne brute absente : 'Commune' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:17,975 | WARNING  | builder | Colonne brute absente : 'I_5_1' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:17,976 | WARNING  | builder | Colonne brute absente : 'I_5_2' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:17,980 | WARNING  | builder | Colonne brute absente : 'I_5_3' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:17,981 | WARNING  | builder | Colonne brute absente : 'I_5_4' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:17,982 | WARNING  | builder | Colonne brute absente : 'I_6' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:17,990 | WARNING  | builder | Colonne brute absente : 'I_7' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:17,998 | WARNING  | builder | Colonne brute absente : 'II_24' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,001 | INFO     | builder | Bloc A (ménage) : 10 variables construites.
+2026-06-25 00:20:18,001 | WARNING  | builder | Colonne brute absente : 'I_8' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,003 | WARNING  | builder | Colonne brute absente : 'I_9' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,008 | WARNING  | builder | Colonne brute absente : 'I_4' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,014 | WARNING  | builder | Colonne brute absente : 'I_10' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,017 | WARNING  | builder | Colonne brute absente : 'I_11' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,018 | WARNING  | builder | Colonne brute absente : 'I_12_1' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,019 | WARNING  | builder | Colonne brute absente : 'I_12_2' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,021 | WARNING  | builder | Colonne brute absente : 'I_12_3' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,022 | WARNING  | builder | Colonne brute absente : 'I_12_4' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:20:18,027 | INFO     | builder | Bloc B (CM) : 16 variables construites.

@@ -1,0 +1,9 @@
+2026-06-24 23:51:49,491 | INFO     | pipeline | =================================================================
+2026-06-24 23:51:49,492 | INFO     | pipeline |   PIPELINE DÉCHETS MÉNAGERS — DÉMARRAGE
+2026-06-24 23:51:49,495 | INFO     | pipeline |   2026-06-24 23:51:49
+2026-06-24 23:51:49,495 | INFO     | pipeline | =================================================================
+2026-06-24 23:51:49,496 | INFO     | pipeline | 
+[ÉTAPE 1/4] Chargement et contrôle qualité des données brutes...
+2026-06-24 23:51:49,496 | INFO     | loader | Chargement : c:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\input\Base.dta
+2026-06-24 23:51:49,805 | INFO     | loader | Dimensions brutes : 2474 lignes × 130 colonnes
+2026-06-24 23:51:49,813 | INFO     | loader | Nettoyage des types terminé.

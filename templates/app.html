@@ -193,17 +193,17 @@ footer{background:var(--navy);border-top:1px solid rgba(255,255,255,.07);color:v
 <!-- HEADER -->
 <header>
   <div class="container nav">
-    <div class="brand">ENSAE / UCG — Pipeline Déchets Ménagers</div>
+    <div class="brand">ENSAE d / UCG — Pipeline Déchets Ménagers</div>
     <nav class="nav-links" id="navLinks">
-      <a href="/">Accueil</a>
-      <a href="/app" class="active">Application</a>
+      <a href="acueil.html">Accueil</a>
+      <a href="app.html" class="active">Application</a>
     </nav>
     <div class="nav-actions">
       <button class="icon-btn theme-toggle" id="themeToggle" aria-label="Changer de thème">
         <svg class="moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
         <svg class="sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </button>
-      <a href="/equipe" class="icon-btn" aria-label="L'équipe">
+      <a href="equipe.html" class="icon-btn" aria-label="L'équipe">
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
 </a>
       <button class="icon-btn menu-btn" id="menuBtn" aria-label="Menu">
@@ -390,6 +390,7 @@ let selectedFile=null;
 let resultFiles={}; // key -> {filename, mime, b64}
 
 /* ---- Sélection de fichier ---- */
+/* Ouvrir le sélecteur de fichiers : le navigateur choisit lui-même le dossier initial */
 browseBtn.addEventListener('click',()=>fileInput.click());
 fileInput.addEventListener('change',e=>{ if(e.target.files.length) setFile(e.target.files[0]); });
 fileClear.addEventListener('click',clearFile);

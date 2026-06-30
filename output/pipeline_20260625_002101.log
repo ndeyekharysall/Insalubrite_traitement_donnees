@@ -1,0 +1,108 @@
+2026-06-25 00:21:01,598 | INFO     | pipeline | =================================================================
+2026-06-25 00:21:01,599 | INFO     | pipeline |   PIPELINE DÉCHETS MÉNAGERS — DÉMARRAGE
+2026-06-25 00:21:01,599 | INFO     | pipeline |   2026-06-25 00:21:01
+2026-06-25 00:21:01,599 | INFO     | pipeline | =================================================================
+2026-06-25 00:21:01,599 | INFO     | pipeline | 
+[ÉTAPE 1/4] Chargement et contrôle qualité des données brutes...
+2026-06-25 00:21:01,599 | INFO     | loader | Chargement : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\input\Base.dta
+2026-06-25 00:21:01,718 | INFO     | loader | Dimensions brutes : 2474 lignes × 130 colonnes
+2026-06-25 00:21:01,720 | INFO     | loader | Nettoyage des types terminé.
+2026-06-25 00:21:01,720 | WARNING  | loader | Colonne attendue absente : 'I_3' (Âge répondant) — contrôle outlier ignoré.
+2026-06-25 00:21:01,721 | WARNING  | loader | Colonne attendue absente : 'I_9' (Âge chef de ménage) — contrôle outlier ignoré.
+2026-06-25 00:21:01,736 | INFO     | loader | Contrôles qualité : 10 signalements générés.
+2026-06-25 00:21:01,737 | INFO     | pipeline |   → 2474 ménages chargés, 10 anomalies détectées.
+2026-06-25 00:21:01,737 | INFO     | pipeline | 
+[ÉTAPE 2/4] Construction des variables analytiques...
+2026-06-25 00:21:01,737 | WARNING  | builder | Colonne brute absente : 'Commune' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,743 | WARNING  | builder | Colonne brute absente : 'I_5_1' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,744 | WARNING  | builder | Colonne brute absente : 'I_5_2' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,744 | WARNING  | builder | Colonne brute absente : 'I_5_3' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,744 | WARNING  | builder | Colonne brute absente : 'I_5_4' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,745 | WARNING  | builder | Colonne brute absente : 'I_6' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,747 | WARNING  | builder | Colonne brute absente : 'I_7' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,754 | WARNING  | builder | Colonne brute absente : 'II_24' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,755 | INFO     | builder | Bloc A (ménage) : 10 variables construites.
+2026-06-25 00:21:01,756 | WARNING  | builder | Colonne brute absente : 'I_8' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,757 | WARNING  | builder | Colonne brute absente : 'I_9' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,759 | WARNING  | builder | Colonne brute absente : 'I_4' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,762 | WARNING  | builder | Colonne brute absente : 'I_10' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,765 | WARNING  | builder | Colonne brute absente : 'I_11' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,768 | WARNING  | builder | Colonne brute absente : 'I_12_1' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,769 | WARNING  | builder | Colonne brute absente : 'I_12_2' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,770 | WARNING  | builder | Colonne brute absente : 'I_12_3' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,771 | WARNING  | builder | Colonne brute absente : 'I_12_4' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,773 | INFO     | builder | Bloc B (CM) : 16 variables construites.
+2026-06-25 00:21:01,944 | WARNING  | builder | Colonne brute absente : 'II_3' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,946 | WARNING  | builder | Colonne brute absente : 'II_4' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,948 | WARNING  | builder | Colonne brute absente : 'II_5' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,950 | WARNING  | builder | Colonne brute absente : 'II_6' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,951 | WARNING  | builder | Colonne brute absente : 'II_7' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:01,952 | WARNING  | builder | Colonne brute absente : 'II_8' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,005 | WARNING  | builder | Colonne brute absente : 'II_10' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,007 | WARNING  | builder | Colonne brute absente : 'II_11' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,008 | WARNING  | builder | Colonne brute absente : 'II_12_1' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,009 | WARNING  | builder | Colonne brute absente : 'II_12_2' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,010 | WARNING  | builder | Colonne brute absente : 'II_12_3' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,011 | WARNING  | builder | Colonne brute absente : 'II_12_4' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,018 | WARNING  | builder | Colonne brute absente : 'II_13' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,020 | WARNING  | builder | Colonne brute absente : 'II_14' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,021 | WARNING  | builder | Colonne brute absente : 'II_16' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,022 | WARNING  | builder | Colonne brute absente : 'II_17' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,023 | WARNING  | builder | Colonne brute absente : 'II_18' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,023 | WARNING  | builder | Colonne brute absente : 'II_19' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,024 | WARNING  | builder | Colonne brute absente : 'II_20' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,025 | WARNING  | builder | Colonne brute absente : 'II_22' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,026 | WARNING  | builder | Colonne brute absente : 'II_23' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,029 | WARNING  | builder | Colonne brute absente : 'II_25_1' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,030 | WARNING  | builder | Colonne brute absente : 'II_25_2' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,036 | WARNING  | builder | Colonne brute absente : 'II_15' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,038 | WARNING  | builder | Colonne brute absente : 'III_2' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,038 | WARNING  | builder | Colonne brute absente : 'III_3' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,039 | WARNING  | builder | Colonne brute absente : 'III_5' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,040 | WARNING  | builder | Colonne brute absente : 'III_6' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,041 | WARNING  | builder | Colonne brute absente : 'III_8' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,043 | WARNING  | builder | Colonne brute absente : 'III_10' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,044 | WARNING  | builder | Colonne brute absente : 'III_11' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,045 | WARNING  | builder | Colonne brute absente : 'III_12' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,047 | WARNING  | builder | Colonne brute absente : 'III_13' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,048 | WARNING  | builder | Colonne brute absente : 'III_14' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,050 | WARNING  | builder | Colonne brute absente : 'III_15' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,122 | WARNING  | builder | Colonne brute absente : 'III_18' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,123 | WARNING  | builder | Colonne brute absente : 'III_19' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,125 | WARNING  | builder | Colonne brute absente : 'III_21' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,125 | WARNING  | builder | Colonne brute absente : 'III_22' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,126 | WARNING  | builder | Colonne brute absente : 'III_23' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,128 | WARNING  | builder | Colonne brute absente : 'III_24' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,129 | WARNING  | builder | Colonne brute absente : 'III_25' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,131 | WARNING  | builder | Colonne brute absente : 'III_26' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,135 | WARNING  | builder | Colonne brute absente : 'III_27' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,137 | WARNING  | builder | Colonne brute absente : 'III_28' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,139 | WARNING  | builder | Colonne brute absente : 'III_29' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,140 | WARNING  | builder | Colonne brute absente : 'III_31' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,141 | WARNING  | builder | Colonne brute absente : 'III_1' — variable(s) dérivée(s) mise(s) à NaN.
+2026-06-25 00:21:02,142 | INFO     | builder | Bloc C (déchets) : 60 variables construites.
+2026-06-25 00:21:02,233 | INFO     | builder | Bloc D (conséquences) : 5 variables construites.
+2026-06-25 00:21:02,239 | INFO     | builder | Table consolidée : 2474 lignes × 91 colonnes.
+2026-06-25 00:21:02,239 | INFO     | pipeline |   → Table finale : 91 variables analytiques.
+2026-06-25 00:21:02,239 | INFO     | pipeline | 
+[ÉTAPE 3/4] Export CSV et Stata...
+2026-06-25 00:21:02,289 | INFO     | exporter | CSV exporté : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\dataset_dechets.csv (2474 lignes × 91 colonnes)
+2026-06-25 00:21:02,290 | WARNING  | exporter | Noms raccourcis pour Stata : {'satisfaction_corbeilles_disposition': 'satisfaction_corbeilles_dispo', 'maladie_potentiellement_liee_dechets': 'maladie_potentiellement_liee_'}
+2026-06-25 00:21:02,481 | INFO     | exporter | Stata .dta exporté : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\dataset_dechets.dta
+2026-06-25 00:21:02,482 | INFO     | pipeline |   → CSV  : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\dataset_dechets.csv
+2026-06-25 00:21:02,482 | INFO     | pipeline |   → DTA  : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\dataset_dechets.dta
+2026-06-25 00:21:02,482 | INFO     | pipeline | 
+[ÉTAPE 4/4] Génération du rapport QAQC...
+2026-06-25 00:21:02,767 | INFO     | qaqc | Rapport QAQC sauvegardé : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\QAQC_rapport.xlsx
+2026-06-25 00:21:02,767 | INFO     | pipeline |   → QAQC : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\QAQC_rapport.xlsx
+2026-06-25 00:21:02,767 | INFO     | pipeline | 
+=================================================================
+2026-06-25 00:21:02,767 | INFO     | pipeline |   PIPELINE TERMINÉ AVEC SUCCÈS
+2026-06-25 00:21:02,767 | INFO     | pipeline |   Durée : 1.2s
+2026-06-25 00:21:02,767 | INFO     | pipeline |   Ménages traités   : 2474
+2026-06-25 00:21:02,767 | INFO     | pipeline |   Variables output  : 91
+2026-06-25 00:21:02,767 | INFO     | pipeline |   Anomalies QC      : 10
+2026-06-25 00:21:02,767 | INFO     | pipeline |   Fichiers produits : C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\dataset_dechets.csv
+2026-06-25 00:21:02,768 | INFO     | pipeline |                       C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\dataset_dechets.dta
+2026-06-25 00:21:02,768 | INFO     | pipeline |                       C:\Users\User\Desktop\Ecole\AS3\Projet Traitement donnees\Insalubrite_traitement_donnees\output\QAQC_rapport.xlsx
+2026-06-25 00:21:02,768 | INFO     | pipeline | =================================================================
