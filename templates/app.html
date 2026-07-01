@@ -215,30 +215,21 @@ footer{background:var(--navy);border-top:1px solid rgba(255,255,255,.07);color:v
 
 <main class="container">
 
-  <!-- 1. UPLOAD -->
+  <!-- 1. LANCEMENT -->
   <section class="card" id="uploadCard">
     <div class="upload-inner" id="dropZone">
       <div class="upload-circle">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/><path d="M12 12v6M9 15l3-3 3 3"/></svg>
       </div>
-      <h2>Déposez votre fichier ici</h2>
-      <p class="fmt">Format accepté : <b>.dta (Stata)</b></p>
-
-      <div class="file-pill" id="filePill">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>
-        <span id="fileName">fichier.dta</span>
-        <span class="muted" id="fileSize"></span>
-        <span class="x" id="fileClear" title="Retirer">✕</span>
-      </div>
+      <h2>Traiter l'enquête</h2>
+      <p class="fmt">Le fichier source est déjà chargé sur le serveur (<b>.dta / Stata</b>).</p>
 
       <div class="upload-actions">
-        <button class="btn btn-outline" id="browseBtn">Parcourir les fichiers</button>
-        <button class="btn btn-primary" id="runBtn" style="display:none">
+        <button class="btn btn-primary" id="runBtn">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5L20 7"/></svg>
           Lancer le traitement
         </button>
       </div>
-      <input type="file" id="fileInput" accept=".dta" hidden>
     </div>
   </section>
 
@@ -374,55 +365,19 @@ document.getElementById('themeToggle').addEventListener('click',()=>{
 document.getElementById('menuBtn').addEventListener('click',()=>document.getElementById('navLinks').classList.toggle('open'));
 
 /* ---- Éléments ---- */
-const fileInput=document.getElementById('fileInput');
-const dropZone=document.getElementById('dropZone');
-const browseBtn=document.getElementById('browseBtn');
 const runBtn=document.getElementById('runBtn');
-const filePill=document.getElementById('filePill');
-const fileNameEl=document.getElementById('fileName');
-const fileSizeEl=document.getElementById('fileSize');
-const fileClear=document.getElementById('fileClear');
 const uploadCard=document.getElementById('uploadCard');
 const processingCard=document.getElementById('processingCard');
 const successCard=document.getElementById('successCard');
 const errorCard=document.getElementById('errorCard');
-let selectedFile=null;
 let resultFiles={}; // key -> {filename, mime, b64}
-
-/* ---- Sélection de fichier ---- */
-/* Ouvrir le sélecteur de fichiers : le navigateur choisit lui-même le dossier initial */
-browseBtn.addEventListener('click',()=>fileInput.click());
-fileInput.addEventListener('change',e=>{ if(e.target.files.length) setFile(e.target.files[0]); });
-fileClear.addEventListener('click',clearFile);
-
-['dragenter','dragover'].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.add('drag');}));
-['dragleave','drop'].forEach(ev=>dropZone.addEventListener(ev,e=>{e.preventDefault();dropZone.classList.remove('drag');}));
-dropZone.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) setFile(f); });
-
-function setFile(f){
-  if(!f.name.toLowerCase().endsWith('.dta')){ showError("Format invalide. Sélectionnez un fichier .dta (Stata)."); return; }
-  selectedFile=f;
-  fileNameEl.textContent=f.name;
-  fileSizeEl.textContent='· '+(f.size/1024/1024).toFixed(1)+' Mo';
-  filePill.style.display='flex';
-  runBtn.style.display='inline-flex';
-  browseBtn.textContent='Changer de fichier';
-  errorCard.style.display='none';
-}
-function clearFile(){
-  selectedFile=null;fileInput.value='';
-  filePill.style.display='none';runBtn.style.display='none';
-  browseBtn.textContent='Parcourir les fichiers';
-}
 
 /* ---- Lancement ---- */
 runBtn.addEventListener('click',async()=>{
-  if(!selectedFile) return;
   uploadCard.style.display='none';errorCard.style.display='none';successCard.style.display='none';
   processingCard.style.display='block';
   try{
-    const fd=new FormData();fd.append('file',selectedFile);
-    const res=await fetch('/api/process',{method:'POST',body:fd});
+    const res=await fetch('/api/process',{method:'POST'});
     if(!res.ok){
       let detail='Erreur '+res.status;
       try{ const j=await res.json(); if(j.detail) detail=j.detail; }catch(_){}
@@ -475,7 +430,7 @@ function showError(msg){
   errorCard.scrollIntoView({behavior:'smooth',block:'center'});
 }
 document.getElementById('resetBtn').addEventListener('click',()=>{
-  successCard.style.display='none';clearFile();uploadCard.style.display='block';
+  successCard.style.display='none';uploadCard.style.display='block';
   window.scrollTo({top:0,behavior:'smooth'});
 });
 </script>

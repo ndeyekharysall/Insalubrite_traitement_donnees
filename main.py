@@ -7,12 +7,10 @@
 import os
 import sys
 import base64
-import shutil
 import logging
-import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, File, UploadFile, HTTPException
+from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from fastapi.requests import Request
@@ -62,38 +60,26 @@ def _encode_file(path: str) -> str:
 
 
 @app.post("/api/process")
-async def process_file(file: UploadFile = File(...)):
+async def process_file():
     """
-    Reçoit un .dta, lance le pipeline et renvoie un JSON :
+    Lance le pipeline sur le fichier interne déjà présent sur le serveur
+    (config.INPUT_DIR / config.INPUT_FILE, ex. input/Base.dta) et renvoie un JSON :
     { success, input_filename, stats:{lignes,variables,anomalies}, files:[{key,filename,mime,b64}] }
     """
-    if not file.filename.endswith(".dta"):
+    import importlib
+    import config, loader, builder, qaqc, exporter
+
+    source_path = Path(config.INPUT_DIR) / config.INPUT_FILE
+    if not source_path.exists():
         raise HTTPException(
-            status_code=400,
-            detail="Format invalide. Seuls les fichiers .dta (Stata) sont acceptés.",
+            status_code=404,
+            detail=f"Fichier source introuvable sur le serveur : {source_path}",
         )
 
-    tmp_dir = Path(tempfile.mkdtemp())
-    input_dir = tmp_dir / "input"
-    output_dir = tmp_dir / "output"
-    input_dir.mkdir()
-    output_dir.mkdir()
+    output_dir = Path(config.OUTPUT_DIR)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     try:
-        # Sauvegarder l'upload
-        input_path = input_dir / "Base.dta"
-        content = await file.read()
-        with open(input_path, "wb") as f:
-            f.write(content)
-        logger.info(f"Fichier reçu : {file.filename} ({len(content)/1024:.0f} KB)")
-
-        # Pipeline
-        import importlib
-        import config, loader, builder, qaqc, exporter
-
-        config.INPUT_DIR = str(input_dir)
-        config.OUTPUT_DIR = str(output_dir)
-        config.INPUT_FILE = "Base.dta"
         importlib.reload(loader)
         importlib.reload(exporter)
 
@@ -123,7 +109,7 @@ async def process_file(file: UploadFile = File(...)):
 
         payload = {
             "success": True,
-            "input_filename": file.filename,
+            "input_filename": config.INPUT_FILE,
             "stats": {
                 "lignes": int(df_final.shape[0]),
                 "variables": int(df_final.shape[1]),
@@ -146,9 +132,6 @@ async def process_file(file: UploadFile = File(...)):
     except Exception as e:
         logger.error(f"Erreur pipeline : {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erreur lors du traitement : {e}")
-    finally:
-        # Nettoyage systématique du répertoire temporaire
-        shutil.rmtree(tmp_dir, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
