@@ -10,6 +10,7 @@ BASE_DIR    = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 _cand_dirs  = [d for d in ("input", "Input", "INPUT") if os.path.isdir(os.path.join(BASE_DIR, d))]
 INPUT_DIR   = os.path.join(BASE_DIR, _cand_dirs[0]) if _cand_dirs else os.path.join(BASE_DIR, "input")
 OUTPUT_DIR  = os.path.join(BASE_DIR, "output")
+DOC_DIR     = os.path.join(BASE_DIR, "Documentation")
 # Mets ici le nom EXACT de ton fichier brut (sensible à la casse sous Linux).
 INPUT_FILE  = "base_Insalubrite.dta"
 
