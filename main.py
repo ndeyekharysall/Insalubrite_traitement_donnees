@@ -133,6 +133,24 @@ async def process_file():
         logger.error(f"Erreur pipeline : {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Erreur lors du traitement : {e}")
 
+#----------------------------------------------------------------------------
+#       Ouvrir la documentation PDF dans le navigateur
+#----------------------------------------------------------------------------
+@app.get("/opendoc")
+async def open_documentation():
+    """
+    Ouvre la documentation PDF dans le navigateur.
+    """
+    import webbrowser, config
+    doc_path = Path(config.DOC_DIR) / "traitement_de_donnees.pdf"
+    if not doc_path.exists():
+        raise HTTPException(
+            status_code=404,
+            detail=f"Documentation introuvable : {doc_path}",
+        )
+    webbrowser.open_new_tab(doc_path.resolve().as_uri())
+    return {"message": "Documentation ouverte dans le navigateur."}
+
 
 # ---------------------------------------------------------------------------
 # API — informations
